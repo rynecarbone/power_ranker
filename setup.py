@@ -7,7 +7,7 @@
 from distutils.core import setup
 
 setup(name='power_ranker',
-      version='0.0.1',
+      version='0.0.2',
       description='Fantasy football power rankings for public ESPN leagues',
       url='http://github.com/rynecarbone/power_ranker',
       author='Ryne Carbone',
