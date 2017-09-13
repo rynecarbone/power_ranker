@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+
+#import power_ranker
+print('Testing executable')
+
