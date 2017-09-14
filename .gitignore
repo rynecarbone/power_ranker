@@ -12,3 +12,6 @@
 
 # For including config files
 /MANIFEST.in
+
+# My own shortcuts and debugging
+my_help.txt
