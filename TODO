@@ -15,9 +15,4 @@ Summary plot of rankings vs week
 - do both for power rankings and espn rankings
 - maybe add to team page?
 
-Make power_rankings.py not an executable, just have functions to get power rankings
-and make webpages
-
-Allow to change week, but recompute records and everything ... probably need a set_week() function and recall all the inital data reading funcitons
-
 Move /output folder somewhere better? How to make it easier to upload to github pages?

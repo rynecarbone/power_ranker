@@ -21,6 +21,7 @@ class League(object):
     self._get_config()
     self._set_basic_info()
     self._fetch_teams()
+    self._update_for_week(self.week)
 
   def __repr__(self):
     return 'League %s, %s Season' % (self.league_id, self.year)
@@ -47,7 +48,14 @@ class League(object):
     for team in teams:
       self.teams.append(Team(teams[team]))
     # Replace opponent with team instance
-    U.replace_opponents(self.teams)    
+    U.replace_opponents(self.teams)
+  
+  def _update_for_week(self, week):
+    '''Update MOV, wins and loses, based on week Numer'''
+    # Set the week number
+    if week != self.week:
+      print('Updating wins, losses, MOV for week %s (previous data was for week: %s)'%(week, self.week))
+      self.week = week
     # Calculate the MOV
     U.calc_mov(self.teams)
     # Calculate wins and loses based on week
@@ -58,47 +66,47 @@ class League(object):
        and optionally in <reverse> order'''
     return sorted(self.teams, key=lambda x: getattr(x,sort_key), reverse=reverse)
 
-  def calc_dom(self, sq_weight=0.25, decay_penalty=0.5):
+  def _calc_dom(self, sq_weight=0.25, decay_penalty=0.5):
     '''Calculate the two step dominance rankings'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     dom = TwoStepDom( self.N_teams, self.week, sq_weight=sq_weight, decay_penalty=decay_penalty)
     dom.get_ranks(teams_sorted)
   
-  def calc_lsq(self, B_w=30., B_r=35., dS_max=35., beta_w=2.2, show_plot=False):
+  def _calc_lsq(self, B_w=30., B_r=35., dS_max=35., beta_w=2.2, show_plot=False):
     '''Calculate rankings based on iterative lsq method''' 
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     lsq = LSQ(self.week, B_w=B_w, B_r=B_r, dS_max=dS_max, beta_w=beta_w, show=show_plot)
     lsq.get_ranks(teams_sorted)
     
-  def calc_colley(self, printMatrix=False):
+  def _calc_colley(self, printMatrix=False):
     '''Calculates and assigns colley rankings for each team in the league'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     colley = Colley(self.week, self.N_teams, printM=printMatrix)
     colley.get_ranks(teams_sorted)
 
-  def calc_sos(self, rank_power=2.37):
+  def _calc_sos(self, rank_power=2.37):
     '''Calculates the strength of schedule based on lsq rankings'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     U.calc_sos(teams_sorted, self.week, rank_power=rank_power)
 
-  def calc_luck(self, awp_weight=0.5):
+  def _calc_luck(self, awp_weight=0.5):
     '''Calculates the luck index'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     U.calc_luck(teams_sorted, self.week, awp_weight=awp_weight)
 
-  def calc_power(self, w_dom=0.21, w_lsq=0.18, w_col=0.18, w_awp=0.15, 
+  def _calc_power(self, w_dom=0.21, w_lsq=0.18, w_col=0.18, w_awp=0.15, 
                  w_sos=0.10, w_luck=0.08, w_cons=0.05, w_strk=0.05):
     '''Calculates the final weighted power index'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     U.calc_power(teams_sorted, self.week, w_dom=w_dom, w_lsq=w_lsq, w_col=w_col,
                  w_awp=w_awp, w_sos=w_sos, w_luck=w_luck, w_cons=w_cons, w_strk=w_strk)
 
-  def save_ranks(self, getPrev=True):
+  def _save_ranks(self, getPrev=True):
     '''Save the power rankings, optionally calculate change from previous week'''
     teams_sorted = self.sorted_teams(sort_key='power_rank', reverse=True)
     U.save_ranks(teams_sorted, self.week, getPrev=getPrev)
 
-  def calc_tiers(self, bw=0.09, order=4, show_plot=False):
+  def _calc_tiers(self, bw=0.09, order=4, show_plot=False):
     '''Calculates tiers based on the power rankings'''
     teams_sorted = self.sorted_teams(sort_key='power_rank', reverse=True)
     U.calc_tiers(teams_sorted, self.week, bw=bw, order=order, show=show_plot)
@@ -118,3 +126,48 @@ class League(object):
       print('%20s %7s  %-8s  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %2d'%(t.owner, rec,
             i+1 if ch == 0 else '%-3s(%3s)'%(i+1, ch), t.power_rank,t.lsq_rank,t.colley_rank,t.dom_rank,t.sos,t.awp,t.luck,
             t.tier))
+
+  def get_power_rankings(self, week=-1):
+    '''Get the power rankings for the specified week
+	     Configuration for all the metrix is passed via config
+	     Default values are set if they are missing from config file
+       If week is passed, rankings are updated for that week number'''
+    # Update week
+    if week > 0: self._update_for_week(week)
+	  # Calculate two-step dominance rankings
+    self._calc_dom(sq_weight     = self.config['2SD'].getfloat('sq_weight', 0.25),
+	                 decay_penalty = self.config['2SD'].getfloat('decay_penalty', 0.5) )
+	  # Calculate the least squares rankings
+    self._calc_lsq(B_w       = self.config['LSQ'].getfloat('B_w', 30.),
+	                 B_r       = self.config['LSQ'].getfloat('B_r', 35.),
+	                 dS_max    = self.config['LSQ'].getfloat('dS_max', 35.),
+	                 beta_w    = self.config['LSQ'].getfloat('beta_w', 2.2),
+	                 show_plot = self.config['LSQ'].getboolean('show_plot', False) )
+	  # Calculate Colley rankings
+    self._calc_colley(printMatrix = self.config['Colley'].getboolean('printMatrix', False) )
+	  # Calculate SOS
+    self._calc_sos(rank_power = self.config['SOS'].getfloat('rank_power', 2.37) )
+	  # Calculate Luck index
+    self._calc_luck(awp_weight = self.config['Luck'].getfloat('awp_weight', 0.5) )
+	  # Calculate final power rankings
+    self._calc_power(w_dom  = self.config['Power'].getfloat('w_dom', 0.21),
+	                   w_lsq  = self.config['Power'].getfloat('w_lsq', 0.18),
+	                   w_col  = self.config['Power'].getfloat('w_col', 0.18),
+	                   w_awp  = self.config['Power'].getfloat('w_awp', 0.15),
+	                   w_sos  = self.config['Power'].getfloat('w_sos', 0.10),
+	                   w_luck = self.config['Power'].getfloat('w_luck', 0.08),
+	                   w_cons = self.config['Power'].getfloat('w_cons', 0.05),
+	                   w_strk = self.config['Power'].getfloat('w_strk', 0.05) )
+	  # Calculate change from previous week
+    self._save_ranks(getPrev = self.config['Tiers'].getboolean('getPrev', False))
+	  # Get Tiers
+    self._calc_tiers(bw        = self.config['Tiers'].getfloat('bw', 0.09),
+	                   order     = self.config['Tiers'].getint('order', 4),
+	                   show_plot = self.config['Tiers'].getboolean('show_plot', False) )
+	  # Print Sorted team
+    self.print_rankings()
+
+  def make_website(self):
+    '''Creates website based on current power rankings.
+       Must run get_power_rankings() first'''
+    print('Website ... under construction')
