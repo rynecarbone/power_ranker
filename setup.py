@@ -1,13 +1,8 @@
-# Follow these instructions to actually register this name
-# http://python-packaging.readthedocs.io/en/latest/minimal.html
-# https://tom-christie.github.io/articles/pypi/
-# https://stackoverflow.com/questions/45207128/failed-to-upload-packages-to-pypi-410-gone
-
-#from setuptools import setup
-from distutils.core import setup
+from setuptools import setup
+from setuptools import find_packages
 
 setup(name='power_ranker',
-      version='0.0.2',
+      version='0.0.3',
       description='Fantasy football power rankings for public ESPN leagues',
       url='http://github.com/rynecarbone/power_ranker',
       author='Ryne Carbone',
@@ -20,14 +15,17 @@ setup(name='power_ranker',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.5',
       ],
-      packages=['power_ranker'],
+      #packages=['power_ranker'],
+      packages=find_packages(),
+      include_package_data = True,
       install_requires=[
         'requests',
+        'configparser',
         'numpy',
         'scipy',
         'matplotlib'
       ],
-      scripts=[
-        'bin/test-script'
-      ],
+      python_requires='>=3',
+      #package_data={'sample': ['package_data.dat'],},
+      #scripts=['bin/test-script'],
       zip_safe=False)
