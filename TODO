@@ -16,3 +16,5 @@ Summary plot of rankings vs week
 - maybe add to team page?
 
 Move /output folder somewhere better? How to make it easier to upload to github pages?
+
+power_ranker/power_ranker.py doesn't run as a script from directory with setup.py --> figure out how to fix the relative import thingy ...

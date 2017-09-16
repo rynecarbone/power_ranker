@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
-from league import League
+from .league import League
 
 #_________________
 def main():
   
   # Specify configuration
-  my_config_file = 'default_config.cfg'
+  my_config_file = '../docs/default_config.cfg'
 
   # Retrieve league info 
   league = League( config_file=my_config_file )

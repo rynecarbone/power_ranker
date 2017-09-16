@@ -1,10 +1,10 @@
 import requests
 import configparser
-from team import Team
-from two_step_dom import TwoStepDom
-from lsq import LSQ
-from colley import Colley
-import utils as U
+from .team import Team
+from .two_step_dom import TwoStepDom
+from .lsq import LSQ
+from .colley import Colley
+from .utils import replace_opponents, calc_mov, calc_wins_losses, calc_sos, calc_luck, calc_power, save_ranks, calc_tiers
 
 #___________________
 class League(object):
@@ -48,7 +48,7 @@ class League(object):
     for team in teams:
       self.teams.append(Team(teams[team]))
     # Replace opponent with team instance
-    U.replace_opponents(self.teams)
+    replace_opponents(self.teams)
   
   def _update_for_week(self, week):
     '''Update MOV, wins and loses, based on week Numer'''
@@ -57,9 +57,9 @@ class League(object):
       print('Updating wins, losses, MOV for week %s (previous data was for week: %s)'%(week, self.week))
       self.week = week
     # Calculate the MOV
-    U.calc_mov(self.teams)
+    calc_mov(self.teams)
     # Calculate wins and loses based on week
-    U.calc_wins_losses(self.week, self.teams)
+    calc_wins_losses(self.week, self.teams)
 
   def sorted_teams(self, sort_key='teamId', reverse=False):
     '''Returns league teams sorted by the string <sort_key> 
@@ -87,29 +87,29 @@ class League(object):
   def _calc_sos(self, rank_power=2.37):
     '''Calculates the strength of schedule based on lsq rankings'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
-    U.calc_sos(teams_sorted, self.week, rank_power=rank_power)
+    calc_sos(teams_sorted, self.week, rank_power=rank_power)
 
   def _calc_luck(self, awp_weight=0.5):
     '''Calculates the luck index'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
-    U.calc_luck(teams_sorted, self.week, awp_weight=awp_weight)
+    calc_luck(teams_sorted, self.week, awp_weight=awp_weight)
 
   def _calc_power(self, w_dom=0.21, w_lsq=0.18, w_col=0.18, w_awp=0.15, 
                  w_sos=0.10, w_luck=0.08, w_cons=0.05, w_strk=0.05):
     '''Calculates the final weighted power index'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
-    U.calc_power(teams_sorted, self.week, w_dom=w_dom, w_lsq=w_lsq, w_col=w_col,
-                 w_awp=w_awp, w_sos=w_sos, w_luck=w_luck, w_cons=w_cons, w_strk=w_strk)
+    calc_power(teams_sorted, self.week, w_dom=w_dom, w_lsq=w_lsq, w_col=w_col,
+               w_awp=w_awp, w_sos=w_sos, w_luck=w_luck, w_cons=w_cons, w_strk=w_strk)
 
   def _save_ranks(self, getPrev=True):
     '''Save the power rankings, optionally calculate change from previous week'''
     teams_sorted = self.sorted_teams(sort_key='power_rank', reverse=True)
-    U.save_ranks(teams_sorted, self.week, getPrev=getPrev)
+    save_ranks(teams_sorted, self.week, getPrev=getPrev)
 
   def _calc_tiers(self, bw=0.09, order=4, show_plot=False):
     '''Calculates tiers based on the power rankings'''
     teams_sorted = self.sorted_teams(sort_key='power_rank', reverse=True)
-    U.calc_tiers(teams_sorted, self.week, bw=bw, order=order, show=show_plot)
+    calc_tiers(teams_sorted, self.week, bw=bw, order=order, show=show_plot)
 
   def print_rankings(self):
     '''Print table of metrics and final power rankings'''

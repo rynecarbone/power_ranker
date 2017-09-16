@@ -2,6 +2,9 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+- Updating website generation code
+- Creating command line scripts for downloading configuration file locally, and running rankings
+- Creating package to install with pip
 
 ## 0.0.2 - 2017-09-13
 ### Changed
