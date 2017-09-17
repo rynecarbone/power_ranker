@@ -2,7 +2,7 @@ from setuptools import setup
 from setuptools import find_packages
 
 setup(name='power_ranker',
-      version='0.0.3',
+      version='0.0.5',
       description='Fantasy football power rankings for public ESPN leagues',
       long_description=open('README.md').read(),
       url='http://github.com/rynecarbone/power_ranker',
@@ -19,12 +19,12 @@ setup(name='power_ranker',
       packages=find_packages(),
       include_package_data = True,
       #package_data={'power_ranker': ['docs/*','README.md','CHANGELOG.md','LICENSE']},
-      data_files=[ 
-        ('docs', ['docs/default_config.cfg']), 
-        ('',['README.md']),
-        ('',['CHANGELOG.md']),
-        ('',['LICENSE']),
-      ],
+      #data_files=[ 
+      #  ('docs', ['docs/default_config.cfg']), 
+      #  ('',['README.md']),
+      #  ('',['CHANGELOG.md']),
+      #  ('',['LICENSE']),
+      #],
       install_requires=[
         'requests',
         'configparser',

@@ -1,3 +1,4 @@
+
 Replace the sorted team lambda functions, with the member function of the league class.
 - pass the sort key as a string
 - optionally specify if in reverse order
