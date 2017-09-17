@@ -1,5 +1,5 @@
 # README
-Update this
+Finish instructions on how to run
 
 # Check out package
 
@@ -24,6 +24,14 @@ Adjust the league name, league id, year, and week in the file, then pass the con
 ```bash
 power_ranker -c MY_LOCAL_CONFIG.cfg
 ```
+Alternatively, pass the league name, league id, year, and week as command line arguments (-n --name, -l --leagueid, -y --year, -w --week) and all other default power ranking settings will be used
+```bash
+power_ranker -n 'My League Name' -l '123456' -y 2017 -w 3
+```
+
+# Manipulate League objects in python interpreter
+-Update instructions here
+
 
 # Credit
 The code to extract league info from hidden ESPN API is largely thanks to
