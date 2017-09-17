@@ -26,7 +26,7 @@ power_ranker -c MY_LOCAL_CONFIG.cfg
 ```
 Alternatively, pass the league name, league id, year, and week as command line arguments (-n --name, -l --leagueid, -y --year, -w --week) and all other default power ranking settings will be used
 ```bash
-power_ranker -n 'My League Name' -l '123456' -y 2017 -w 3
+power_ranker -n 'My League Name' -l 123456 -y 2017 -w 3
 ```
 
 # Manipulate League objects in python interpreter
