@@ -4,7 +4,7 @@ from .league import League
 def main():
   
   # Specify configuration
-  my_config_file = '../docs/default_config.cfg'
+  my_config_file = 'docs/default_config.cfg'
 
   # Retrieve league info 
   league = League( config_file=my_config_file )
