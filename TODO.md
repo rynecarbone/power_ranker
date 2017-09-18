@@ -23,10 +23,16 @@
 - do both for power rankings and espn rankings
 - maybe add to team page?
 
-##$(Q)"(BMake Documentation for Publishing Website
+## Make Documentation for Publishing Website
 - Move /output folder somewhere better? 
 - How to make it easier to upload to github pages?
 - Make sure paths in code still work
+
+## Testing
+- Implement some unit tests
+
+## Error Handling
+- Have more than zero error handling
 
 # Misc.
 - power_ranker/power_ranker.py doesn't run as a script from directory with setup.py --> figure out how to fix the relative import thingy ... maybe just remove it...
