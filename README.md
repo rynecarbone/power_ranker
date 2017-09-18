@@ -16,7 +16,7 @@ python3 setup.py install
 ```
 
 # Generate a Configuration File
-Download a local copy of the default configuration file. Once you have the file, file in your league name, league id, year, and week (that you want to make rankings for). You can also adjust any of the settings that control the algorithms in the power rankings, or use the default values. To download a local copy of the configuration file, use the -dc (--download-config) option:
+Download a local copy of the default configuration file. Once you have the file, fill in your league name, league id, year, and week (that you want to make rankings for). You can also adjust any of the settings that control the algorithms in the power rankings, or use the default values. To download a local copy of the configuration file, use the -dc (--download-config) option:
 ```bash
 power_ranker -dc
 ```
@@ -41,11 +41,16 @@ python3
 >>> my_league = League(my_config)
 >>> my_league.get_power_rankings()
 ```
+## Recalculate power rankings for a separate week
 After you have a league object, you can get power rankings for a different week as well (example, for week 3):
 ```python3
 >>> my_league.get_power_rankings(3)
 ```
-
+## Generate website after calculating rankings
+After you have calculated the power rankings for the desired week, you can create a directory with html files to showcase the rankings online. For an example of how to use Github Pages to host the website, see the documentation in  "docs/PublishingWebsite.md"
+```python3
+>>> my_league.make_website()
+```
 
 # Credit
 The code to extract league info from hidden ESPN API is largely thanks to

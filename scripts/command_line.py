@@ -2,7 +2,7 @@ import argparse
 import shutil
 import os.path
 import pkg_resources
-from power_ranker.league import League as League
+from power_ranker.league import League
 
 #_______________________________
 def run_cl_rankings(config_file):
