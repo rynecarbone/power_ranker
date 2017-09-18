@@ -1,14 +1,14 @@
 # Cleaning up code
-## Team sorting
+### Team sorting
 - Replace the sorted team lambda functions, with the member function of the league class.
 - pass the sort key as a string
 - optionally specify if in reverse order
 
-## Website generation
+### Website generation
 - Finish ranking plot, website, radar plots
 - Maybe run rankings for previous week if not already saved somewhere ... ? Might be tricky if it rewrites over something you didn't want it to.
 
-## Command line arguments
+### Command line arguments
 - Make argparse -> refine a bit
 
 # Algorithms
@@ -18,20 +18,22 @@
 
 # Further Things to Develop
 
-## Summary plot of rankings vs week
+### Summary plot of rankings vs week
 - read the txt files
 - do both for power rankings and espn rankings
 - maybe add to team page?
 
-## Make Documentation for Publishing Website
+### Make Documentation for Publishing Website
 - Move /output folder somewhere better? 
 - How to make it easier to upload to github pages?
 - Make sure paths in code still work
 
-## Testing
+
+### Testing
 - Implement some unit tests
 
-## Error Handling
+
+### Error Handling
 - Have more than zero error handling
 
 # Misc.
