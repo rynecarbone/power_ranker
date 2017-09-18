@@ -36,10 +36,14 @@ power_ranker -n 'My League Name' -l 123456 -y 2017 -w 3
 After you have added your league information to the local configuration file, you can open python3 interpreter:
 ```python3
 python3
-from power_ranker.league import League
-my_config = 'MY_LOCAL_CONFIG.cfg'
-my_league = League(my_config)
-my_league.get_power_rankings()
+>>> from power_ranker.league import League
+>>> my_config = 'MY_LOCAL_CONFIG.cfg'
+>>> my_league = League(my_config)
+>>> my_league.get_power_rankings()
+```
+After you have a league object, you can get power rankings for a different week as well (example, for week 3):
+```python3
+>>> my_league.get_power_rankings(3)
 ```
 
 
