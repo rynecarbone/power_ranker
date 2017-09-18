@@ -28,12 +28,10 @@
 - How to make it easier to upload to github pages?
 - Make sure paths in code still work
 
-
-### Testing
+### Testing
 - Implement some unit tests
 
-
-### Error Handling
+### Error Handling
 - Have more than zero error handling
 
 # Misc.
