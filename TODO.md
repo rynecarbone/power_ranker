@@ -13,7 +13,7 @@
 
 # Algorithms
 - Look at normalization funcitons -- standardize?
--LSQ -- verify it is doing what I think it is
+- LSQ -- verify it is doing what I think it is
 
 
 # Further Things to Develop
