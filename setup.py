@@ -18,13 +18,6 @@ setup(name='power_ranker',
       ],
       packages=find_packages(),
       include_package_data = True,
-      #package_data={'power_ranker': ['docs/*','README.md','CHANGELOG.md','LICENSE']},
-      #data_files=[ 
-      #  ('docs', ['docs/default_config.cfg']), 
-      #  ('',['README.md']),
-      #  ('',['CHANGELOG.md']),
-      #  ('',['LICENSE']),
-      #],
       install_requires=[
         'requests',
         'configparser',
