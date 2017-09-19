@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib import pylab as pl
 
 class Radar(object):
-  '''Creates a radar plot for each team'''
+  '''Creates a radar plot for each team '''
   def __init__(self, fig, titles, labels, rect=None):
     if rect is None:
       rect = [0.05, 0.05, 0.85, 0.85]
