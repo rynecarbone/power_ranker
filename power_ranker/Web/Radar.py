@@ -31,8 +31,10 @@ class Radar(object):
 
 
 #____________________________
-def make_radar( team, week ):
-  '''Makes radar plots and saves them to folder'''
+def make_radar( team, week, Y_LOW=[0,0,.4,50,-60,-5], Y_HIGH=[1,1,1.4,150,40,5] ):
+  '''Makes radar plots and saves them to folder
+     y_low is list of minimum y values (win pct, awp, sos, ppg, mov, streak)
+     y_high is list of maximum y values (win pct, awp, sos, ppg, mov, streak)'''
   fig = pl.figure(figsize=(6,6))
 
   titles = [ 'Win Pct',
@@ -41,17 +43,16 @@ def make_radar( team, week ):
              'PPG',
              'MOV',
              'Streak' ]
-  labels = [ np.linspace(0.2,1.,num=5),
-             np.linspace(0.2,1.,num=5),
-             np.linspace(.6,1.4,num=5),
-             np.linspace(70,150,num=5),
-             np.linspace(-40,40,num=5),
-             np.linspace(-3,5,num=5)
+  Y_LOW2 = [ 0.2*(h-l)+l for (l,h) in zip(Y_LOW, Y_HIGH) ]
+  labels = [ np.linspace(Y_LOW2[0], Y_HIGH[0], num=5),
+             np.linspace(Y_LOW2[1], Y_HIGH[1], num=5),
+             np.linspace(Y_LOW2[2], Y_HIGH[2], num=5),
+             np.linspace(Y_LOW2[3], Y_HIGH[3], num=5),
+             np.linspace(Y_LOW2[4] ,Y_HIGH[4], num=5),
+             np.linspace(Y_LOW2[5], Y_HIGH[5], num=5)
             ]
-  ymin = [ 0, 0,   .4,  50, -60, -5]
-  ymax = [ 1, 1, 1.4, 150,  40,  5]
-  scale = [ 5./(ymax[x]-ymin[x]) for x in range(6) ]
-  offset = [ (0 - ymin[x]) for x in range(6) ]
+  scale = [ 5./(Y_HIGH[x]-Y_LOW[x]) for x in range(6) ]
+  offset = [ (0 - Y_LOW[x]) for x in range(6) ]
 
   t_ranks = [ float(team.wins)/float(team.wins + team.losses),
               float(team.awp),

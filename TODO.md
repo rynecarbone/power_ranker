@@ -5,8 +5,9 @@
 - optionally specify if in reverse order
 
 ### Website generation
-- Finish ranking plot, website, radar plots
 - Maybe run rankings for previous week if not already saved somewhere ... ? Might be tricky if it rewrites over something you didn't want it to.
+- What if multiple players wiht same name (drop down menu, folders, etc...)
+- Should the code be a class or something?
 
 ### Command line arguments
 - Make argparse -> refine a bit
@@ -14,7 +15,6 @@
 # Algorithms
 - Look at normalization funcitons -- standardize?
 - LSQ -- verify it is doing what I think it is
-
 
 # Further Things to Develop
 
@@ -32,6 +32,7 @@
 - Implement some unit tests
 
 ### Error Handling
+- Something breaks with number of teams changing (see Physics League...)
 - Have more than zero error handling
 
 # Misc.

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="About">
+    <meta name="author" content="Ryne Carbone">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>About Power Rankings</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="../../dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="../../dist/css/bootstrap-theme.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="../theme.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">Physical Fantasy</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="../power.html">Power Rankings</a></li>
+            <li class="active"><a href="#">About</a></li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Teams <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+							PLAYERDROPDOWN
+							</ul>
+            </li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container theme-showcase" role="main">
+
+      <!-- Main jumbotron for a primary marketing message or call to action -->
+      <div class="jumbotron">
+        <h1>Inside the Power Rankings</h1>
+      	<p>Each component of the power rankings are explained here</p>
+			</div>
+
+
+      <div class="alert alert-warning" role="alert">
+ 					<strong>Warning!</strong> Under construction, please come back soon
+       		<div class="progress">
+        		<div class="progress-bar progress-bar-warning progress-bar-striped" role="progressbar" aria-valuenow="33" aria-valuemin="0" aria-valuemax="100" style="width: 33%">
+							<span></span>
+						</div>
+      	</div>
+      </div>
+
+		<div id="ranking_explanation" class="bigger col-md-12">
+
+		<div class="page-header">
+			<h1>LSQ</h1>
+		</div>
+		<p>This is where explain LSQ when I have time to write it <span class='footnote' data-toggle="tooltip" title="Affogato bushwick irony tacos, kitsch etsy tousled distillery <a href='http://www.intelligentsiacoffee.com/'>intelligentsia</a> tattooed photo booth trust fund synth letterpress hashtag 8-bit."></span>
+		. Generally speaking it uses score differential and an iterative process to derive ranking scores by minimizing a chi square metric.</p>
+
+		<div class="page-header">
+			<h1>2SD</h1>
+		</div>
+		<p>The Two Step Dominace Matrix Method<span class='footnote' data-toggle="tooltip" title="Some examples of using a <a href='http://directorymathsed.net/download/Thomas.pdf'>Dominance Matrix</a>"></span>
+		is based on directed graphs. I am currently exploring a more sophisticated version much like
+		the PageRank algorithm<span class='footnote' data-toggle="tooltip" title="Generalizing PageRank to rank NFL teams discussed <a href='http://www2.sas.com/proceedings/forum2008/151-2008.pdf'>here</a>."></span> <span class='footnote' data-toggle="tooltip" title="Another discussion on PageRank for NFL rankings <a href='https://www.ncsu.edu/crsc/reports/ftp/pdf/crsc-tr06-19.pdf'>here</a>."></span>
+		Google developed to rank importance of websites.
+		</p>
+		For now I will go over a simplified 2SD: let us assume there are 6 teams in the league, labeled A-F. If team A beats team B,
+		we draw an arrow from A to B. Consider the graph below after 3 games:
+		</p>
+		<div class="col-md-12">
+		<img src='dom_graph.png' class="img-thumbnail col-md-6" alt="dominance graph"></img>
+		</div>
+		<p> We can store this information in a matrix where entry $d_{ij}=1$ if team $i$ beats
+		team $j$. For this example we have:
+		$$\begin{align}&&&\quad \text{Opposing Team} \nonumber\\
+		&&& \begin{matrix}A&B&C&D&E&F\end{matrix} \nonumber\\
+		D_{1}&=&\begin{matrix}A\\B\\C\\D\\E\\F\end{matrix} &
+		 \begin{bmatrix} 0 & 1 &0 & 0 & 1 &0 \\
+										 0 & 0 & 0 &1 & 0  &1 \\
+										 1 & 0 & 0 &0 & 1  &0 \\
+										 0 & 0 & 1 &0 & 0  &0 \\
+										 0 & 0 & 0 &0 & 0  &1 \\
+										 0 & 0 & 0 &1 & 0  &0 \end{bmatrix}
+		\end{align}
+		$$</p>
+
+		<p>This is called a first order dominance matrix, merely counting wins. A second order dominance matrix counts how many
+		paths of length two exist from team $i$ to team $j$. A second order dominance over team $j$ occurs when you beat a team who beat
+		team $j$. In our example diagram, there are two paths from A to F, so the
+		component $m_{AF}=2$. Instead of counting lines, an easier approach is to simply square our first order dominance matrix.
+		Continuing our example this gives:
+		$$\begin{align}&&&\quad \text{Opposing Team} \nonumber\\
+		&&& \begin{matrix}A&B&C&D&E&F\end{matrix} \nonumber\\
+		D_{2}&=&\begin{matrix}A\\B\\C\\D\\E\\F\end{matrix} &
+		 \begin{bmatrix} 0 & 0 &0 & 1 & 0  &2 \\
+										 0 & 0 & 1 &1 & 0  &0 \\
+										 0 & 1 & 0 &0 & 1  &1 \\
+										 1 & 0 & 0 &0 & 1  &0 \\
+										 0 & 0 & 0 &1 & 0  &0 \\
+										 0 & 0 & 1 &0 & 0  &0 \end{bmatrix}
+		\end{align}
+		$$
+		</p>
+		<p>The two step dominance method adds the first and second order dominance matrices, $\alpha_1D_1+\alpha_2D_2$,
+		and then sums the rows in the resulting matrix. The sum represents the overall dominance score for the team
+		corresponding to that row. Using $\alpha_1=1, \alpha_2=0.5$, our example becomes:
+		$$\begin{align}
+		D_{1}+0.5D_2\quad&=&\begin{matrix}A\\B\\C\\D\\E\\F\end{matrix} &
+		 \begin{bmatrix} 0 & 1 &0 & 0.5 & 1 &1 \\
+										 0 & 0 & 0.5 &1.5 & 0  &1 \\
+										 1 & 0.5 & 0 &0 & 1.5  &0.5 \\
+										 0.5 & 0 & 1 &0 & 0.5  &0 \\
+										 0 & 0 & 0 &0.5 & 0  &1 \\
+										 0 & 0 & 0.5 &1 & 0  &0 \end{bmatrix}\nonumber\\&&& \nonumber\\
+										 \overset{\mbox{Sum rows}}{\longrightarrow} && \begin{matrix}A\\B\\C\\D\\E\\F\end{matrix}
+										& \begin{bmatrix}3.5\\3\\3.5\\2\\1.5\\1.5\end{bmatrix} \nonumber
+		\end{align}
+		$$
+		</p>
+		<p>In the actual rankings I have set $\alpha_1=0.75$ and $\alpha_2=0.25$ and introduced a time weighting factor,
+		so that an entry $d^1_{ij}$ in the first order dominance matrix is:
+		$$d^1_{ij} = 0.5 + \frac{1}{2}\left(\frac{t_g}{T}\right)$$
+		where $t_g$ is the time the game was played, and $T$ is the time at computing the rankings. Thus a win from the most recent
+		week will have weight $1$, and older games tend towards $\frac{1}{2}$. The overall dominance scores are scaled so that the average
+		team has a dominance score of 1.
+		</p>
+		<div class="page-header">
+			<h1>Colley</h1>
+		</div>
+		<p>The Colley Matrix method<span class='footnote' data-toggle="tooltip" title="Read a detailed explanation by <a href='http://www.colleyrankings.com/matrate.pdf'>Colley himself</a>"></span> was originally developed to rank college football teams in an unbiased, open source way. Most notably, it tries to:</p>
+
+		<ul>
+			<li>Use minimal assumptions</li>
+			<li>Address strength of schedule</li>
+			<li>Ignore blowouts</li>
+			<li>Produce common sense results</li>
+		</ul>
+
+		<p>The Colley Matrix only factors in wins and losses. In college football,
+				the motivation is to combat the tendancy for teams to run up the score
+				to improve their rankings. In fantasy football, if you're not running up
+				the score, you're not playing the game. In that sense, the Colley rankings
+				may be incomplete when it comes to fantasy; nevertheless, it can still offer
+				a useful metric. Since every team plays a different schedule, factoring wins
+				and losses should also somehow account for the quality of those wins and
+				losses.</p>
+
+		<p>To begin, instead of a simple winning percentage, a rankings metric
+		is defined by:
+		$$\begin{equation} r = \frac{1+n_w}{2+n_{tot}}\label{eq:r} \end{equation}$$
+		with $n_w, n_{tot}$ designating the number of wins and total number of games
+		respectively. This is especially important for early season rankings where
+		winning percentages of 0% and 100% offer little comparative insight. The idea
+		is that everyone starts with $r=\frac{1}{2}$, and with each game the ranking adjusts
+		according to the result in a bayesian manner.
+		</p>
+
+		<p>To account for strength of schedlue, the rankings metric in \eqref{eq:r} can be
+		utilized. Consider rewriting the number of wins for team $i$ as:
+		$$\begin{align}
+			n_{w,i}\quad & = &\frac{n_{w,i}-n_{l,i}}{2} +\frac{n_{tot,i}}{2}\nonumber \\
+		          & = &\frac{n_{w,i}-n_{l,i}}{2} +\sum^{n_{tot,i}}\frac{1}{2}\nonumber\\
+			\end{align}$$
+		If we recognize that sum as the sum of the rankings of team $i$'s opponents, we can
+		write down an effective number of wins which accounts for strength of schedule:
+		$$\begin{equation} n^{eff}_{w,i} \quad=\quad \frac{n_{w,i}-n_{l,i}}{2} +\sum_j^{n_{tot,i}}r_j^i \end{equation}$$
+		</p>
+
+		<p>
+		By substituting this new $n^{eff}$ into the original rankings metric in \eqref{eq:r} (and rearrange), we can set up a system of equations:
+		$$\begin{equation}(2+n_{tot,i})r_i -\sum_{j}^{n_{tot,i}}r_j^i \quad =\quad 1 + \frac{n_{w,i}-n_{l,i}}{2} \label{eq:sys_eq}\end{equation}$$
+		By collecting terms, we can write this as a matrix equation:
+		$$\begin{equation}C\vec{r}\quad=\quad\vec{b}\label{eq:mat}\end{equation}$$
+		</p>
+
+		<p>
+		We see that $\vec{b}$ in equation \eqref{eq:mat} is a column vector consisting of the right hand side of equation \eqref{eq:sys_eq},
+		and $\vec{r}$ is a column vector of all the ratings. The Colley matrix, $C$, has elements:
+		$$c_{ii}\quad = \quad 2+n_{tot,i}\\ c_{ij}\quad=\quad -n_{ji}$$
+		where $n_{ji}$ is the number of times team $i$ has played team $j$. The rankings vector, $\vec{r}$,
+		can be solved numerically rather easily since $C$ is real, symmetric and positive definite.
+		</p>
+
+		<div class="page-header">
+			<h1>SOS</h1>
+		</div>
+		<p>There are a few ways to determine strength of schedule. Colley already attempts to address this
+		in some form, but I chose to create an explicit metric for SOS<span class='footnote' data-toggle="tooltip" title="Simple, straightforward discussion at <a href='http://www.laxpower.com/update16/ex_sos.php'>LaCrosse Power Index</a>"></span>.
+		Since we have a few ratings metrics available already, I chose to calculate strength of
+		schedule by weighing your opponent's LSQ ranking.
+		$$\begin{equation}S\quad=\quad \frac{1}{n_{g}}\sum_i^{n_g}\left( R_{lsq,i} \right)^{\beta_{w}} \end{equation}$$
+		where the exponent $\beta_w$ is chosen to give more weight to harder opponents. The final $S$ values are
+		scaled so that the average team has $S=1$.
+	</p>
+		<div class="page-header">
+			<h1>Luck</h1>
+		</div>
+
+		<p>The luck index is an original metric that tries to account for two common concerns:</p>
+		<ul>
+			<li>An opponent scoring above their average when playing you</li>
+			<li>Outscoring teams you aren't playing</li>
+		</ul>
+		<p>To address the first point, I calculate an average opponent performance index:
+		$$P_{opp}\quad=\quad \frac{1}{n_g}\sum_{i}^{n_g}\frac{s_{opp,i}}{\lt{s_{opp,i}}\gt}$$
+		where $s_{opp,i}$ is the score of your $i^{\rm th}$ opponent, and $\lt s_{opp,i}\gt$
+		is your $i^{\rm th}$ opponent's average score.
+		</p>
+
+		<p>To address the second point, I calculate a win index, or Windex&trade;,
+		for your team:
+		$$W_{\rm index}\quad = \quad \left.\frac{n_w}{n_w+n_l}\middle/ \frac{n_{aw}}{n_{aw}+n_{al}}\right.$$
+		where $n_{aw}, n_{al}$ are your aggregate wins and losses. The number of aggregate wins
+		and losses are calculated by comparing your score each week to every other team's score.
+		</p>
+
+		<p>Notice that a lucky team will have $P_{opp}\lt 1$ and $W_{\rm index}\gt 1$.
+		Finally, the Luck index weighs these two quantities:
+		$$\begin{equation}L\quad = \quad \alpha_{P}\frac{1}{P_{opp}}+\alpha_{W}W_{\rm index}\end{equation}$$
+		such that a team with average luck has $L=1$, and a team with above average luck
+		has $L\gt 1$.
+		</p>
+
+
+		<div class="page-header">
+			<h1>Power</h1>
+		</div>
+		<p>Besides the 5 metrics described above, the overall power ranking also takes into account winning streaks
+		and a min-max metric. A small winning streak bonus is added for streaks at least two games long. The min-max
+		metric is calculated by:
+		$$M = \frac{0.5(s_{max}+s_{min})}{s_{avg}}$$
+		where $s_{min}, s_{max}, s_{avg}$ are your minimum, maximum and average scores for the season.
+		</p>
+		<p>
+		The overall power ranking is thus:
+		$$\begin{align}R_{\text{power}}\quad &=& \alpha_{lsq}R_{lsq} + \alpha_{2sd}R_{2sd} + \alpha_{colley}R_{colley} +  \alpha_{sos}S \ + \nonumber \\
+																	&&	 \frac{\alpha_{luck}}{L} + \alpha_{min-max}M + \alpha_{streak}W_{\gt2}
+		\end{align}$$
+		The exact values of all the weights are a trade secret, subject to change as I gain more
+		experience with their behavior.
+		</p>
+
+		<div class="page-header">
+			<h1>Tier</h1>
+		</div>
+		<p>To determine the tiers, I use Gaussian Kernel Density Estimation (KDE)<span class='footnote' data-toggle="tooltip" title="Wikipedia with way too much detail on <a href='https://en.wikipedia.org/wiki/Kernel_density_estimation'>Gaussian Kernel Density Estimation</a>"></span>.
+		Given a list of overall power scores, the KDE attempts to create a smooth probability density funciton.
+		By looking for minima in the KDE, it is possible to identify separated clusters of rankings.
+		</p>
+		<p>The KDE method is highly sensitive to the specified bandwidth: the range over which the KDE is allowed to vary. If the bandwidth
+		is too large, there is oversmoothing, too small and each data point will be isolated. From week to week I try to
+		select a bandwidth that produces 3-6 tiers. An example output of the KDE method is shown below:
+		</p>
+		<div class="col-md-12">
+		<img src="tiers_example.png" class="img-thumbnail col-md-6" alt="tiers KDE"></img>
+		</div>
+
+	</div> <!-- /rankings explanation -->
+  </div> <!-- /container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="../../dist/js/bootstrap.min.js"></script>
+		<script type="text/x-mathjax-config"> MathJax.Hub.Config({displayAlign: "left", displayIndent: "2em",TeX: { equationNumbers: { autoNumber: "AMS" } }, tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
+		<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+		<script src="../about.js"> </script>
+  </body>
+</html>

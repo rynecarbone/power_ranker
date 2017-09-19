@@ -5,12 +5,11 @@ import numpy as np
 def make_power_plot(teams,week):
   '''Make plot of power ranking versus
     average score'''
-  
   scores = []
   owners = []
   powers = []
   colors = []
-
+  # Tier colors
   c = [(133/255.,205/255.,242/255.),
        (122/255.,201/255.,96/255.),
        (224/255.,183/255.,0/255.),
@@ -20,7 +19,6 @@ def make_power_plot(teams,week):
   my_dpi = 96  
   minx=200
   maxx=0
-
   # Save scores, tiers, names
   for t in sorted(teams, key=lambda x: x.power_rank, reverse=True):
     t_scores = []
@@ -36,7 +34,6 @@ def make_power_plot(teams,week):
       minx = t_min
     if t_max > maxx:
       maxx = t_max
-  
   # Set up plot
   f = plt.figure()
   f.set_size_inches(992./my_dpi,558./my_dpi)

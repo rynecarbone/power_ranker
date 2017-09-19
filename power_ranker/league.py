@@ -5,12 +5,16 @@ from .two_step_dom import TwoStepDom
 from .lsq import LSQ
 from .colley import Colley
 from .utils import replace_opponents, calc_mov, calc_wins_losses, calc_sos, calc_luck, calc_power, save_ranks, calc_tiers
+from .web.radar import make_radar
+from .web.website import generate_web
+from .web.power_plot import make_power_plot
 
 #___________________
 class League(object):
   '''Given ESPN public league information, collects stats and creates
      team objects for all teams'''
   def __init__(self, config_file='default_config.cfg'):
+    self.league_name = ''
     self.league_id   = '' 
     self.year        = ''
     self.week        = ''
@@ -34,9 +38,10 @@ class League(object):
   
   def _set_basic_info(self):
     '''Set league id, week, year'''
-    self.league_id = self.config['League Info'].getint('league_id')
-    self.year      = self.config['League Info'].getint('year')
-    self.week      = self.config['League Info'].getint('week')
+    self.league_name = self.config['League Info'].get('league_name')
+    self.league_id   = self.config['League Info'].getint('league_id')
+    self.year        = self.config['League Info'].getint('year')
+    self.week        = self.config['League Info'].getint('week')
 
   def _fetch_teams(self):
     '''Scrape info for each team from ESPN'''
@@ -170,4 +175,13 @@ class League(object):
   def make_website(self):
     '''Creates website based on current power rankings.
        Must run get_power_rankings() first'''
-    print('Website ... under construction')
+    # Make Radar plots of each teams stats
+    Y_LOW  = [float(yl.strip()) for yl in self.config['Radar'].get('Y_LOW').split(',')]
+    Y_HIGH = [float(yh.strip()) for yh in self.config['Radar'].get('Y_HIGH').split(',')]
+    for t in self.teams:
+      make_radar(t, self.week, Y_LOW, Y_HIGH)
+    # Make welcome page power plot
+    make_power_plot(self.teams, self.week)
+    # Generate html files for team and summary pages
+    generate_web(self.teams, self.week, self.league_id, self.league_name)
+

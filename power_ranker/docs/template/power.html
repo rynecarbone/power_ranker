@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="Fantasy Football Power Rankings">
+    <meta name="author" content="Ryne Carbone">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>Physical Fantasy Rankings</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="../dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="../dist/css/bootstrap-theme.min.css" rel="stylesheet">
+    <!-- Sortable datatables -->
+		<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.12/css/jquery.dataTables.css">
+    
+		<!-- Custom styles for this template -->
+    <link href="theme.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="index.html">Physical Fantasy</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="#">Power Rankings</a></li>
+            <li><a href="about/index.html">About</a></li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Teams <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+            PLAYERDROPDOWN	
+						</ul>
+            </li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container theme-showcase" role="main">
+
+      <div class="jumbotron">
+        <h1>Elements of Physical Fantasy Power Rankings</h1>
+        <p>Because trash talk is better with stats to back it up.</p>
+      </div>
+
+
+      <div class="page-header">
+        <h1>INSERT WEEK</h1>
+      </div>
+
+			<div class="col-md-12 bigger">
+				<p>New write-up here</p>
+			</div>
+
+      <div class="row">
+        <div class="col-md-12 table-responsive">
+          <table id="power_table" class="table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Owner</th>
+                <th>Record</th>
+								<th>Power</th>
+                <th>LSQ</th>
+                <th>2SD</th>
+                <th>Colley</th>
+                <th>SOS</th>
+                <th>Luck</th>
+                <th>Tier</th>
+              </tr>
+            </thead>
+            <tbody>
+						INSERT TABLE
+          	</tbody>
+					</table>
+        </div>
+      </div>
+
+
+      <div class="page-header">
+        <h1>Metrics</h1>
+      </div>
+      <div class="well">
+      	<table class='table table-borderless'>
+					<tr>
+					  <td><b>Power</b> </td>
+						<td>Final weighted combination of the other metrics</td>
+					</tr>
+					<tr>
+					  <td><b>LSQ</b>  </td>
+      	    <td>Iterative Least Square minimization, comparing ranking difference to score outcome, many factors included, see description</td>
+					</tr>
+					<tr>
+      			<td><b>2SD</b></td>
+						<td>Two step dominance matrix, recency weighting</td>
+					</tr>
+					<tr>
+      			<td><b>Colley</b></td>
+						<td> Colley matrix ranking, only factors outcome</td>
+					</tr>
+					<tr>
+      			<td><b>SOS</b></td>
+						<td> Relative strength of schedule, scaled to average schedule</td>
+					</tr>
+      		<tr>
+					  <td><b>Luck</b> </td>
+						<td>Luck index, factors opponents score and aggregrate wins </td>
+					</tr>
+					<tr>
+						<td><b>Tier</b></td>
+						<td>Clustering by finding minima in Gaussian Kernel Density Estimation
+					</tr>
+				</table>
+			</div>
+		<div id="debug"> </div>    
+		</div> <!-- /container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="../dist/js/bootstrap.min.js"></script>
+		<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.12/js/jquery.dataTables.js"></script>
+		<script src="theme.js"> </script>
+
+  </body>
+</html>
