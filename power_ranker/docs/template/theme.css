@@ -1,0 +1,75 @@
+body {
+  padding-top: 70px;
+  padding-bottom: 30px;
+	counter-reset: footnotecounter;
+}
+
+.theme-dropdown .dropdown-menu {
+  position: static;
+  display: block;
+  margin-bottom: 20px;
+}
+
+.theme-showcase > p > .btn {
+  margin: 5px 0;
+}
+
+.theme-showcase .navbar .container {
+  width: auto;
+}
+.table-center td{
+		text-align: center;
+}
+.vertical-center {
+		display: flex;
+		align-items: center;
+		flex-flow: wrap;
+}
+.bigger {
+	font-size: 16px;
+	line-height: 165%;
+}
+.bigger > p{
+	max-width: 700px;
+	margin-bottom: 1.5em;
+}
+.bigger > ul{
+	list-style-type:none;
+	margin-bottom: 1.5em;
+}
+.bigger > ul > li:before {
+	content: "\e080";
+	font-family: 'Glyphicons Halflings';
+	font-size: 16px;
+	position: relative;
+	margin-right: 1em;
+	top: 3px;
+}
+.table-borderless tbody tr td, .table-borderless tbody tr th, .table-borderless thead tr th {
+	    border: none;
+}
+.row-tier1 {
+	background-color: rgba(220, 234, 238, 1);
+}
+.row-tier2 {	
+	background-color: rgba(215, 238, 206, 1);
+}
+.row-tier3 {
+	background-color: rgba(238, 235, 192, 1);
+}
+.row-tier4 {
+	background-color: rgba(235, 207, 175, 1);
+}
+.row-tier5 {
+	background-color: rgba(227, 169, 157, 1);
+}
+span.footnote:before {
+  counter-increment: footnotecounter;
+	content: counter(footnotecounter);
+	position: relative;
+	top: -0.4em;
+}
+
+span.footnote{
+	color: #24B1E6;
+}

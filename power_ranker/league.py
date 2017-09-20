@@ -80,7 +80,7 @@ class League(object):
   def _calc_lsq(self, B_w=30., B_r=35., dS_max=35., beta_w=2.2, show_plot=False):
     '''Calculate rankings based on iterative lsq method''' 
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
-    lsq = LSQ(self.week, B_w=B_w, B_r=B_r, dS_max=dS_max, beta_w=beta_w, show=show_plot)
+    lsq = LSQ(self.year, self.week, B_w=B_w, B_r=B_r, dS_max=dS_max, beta_w=beta_w, show=show_plot)
     lsq.get_ranks(teams_sorted)
     
   def _calc_colley(self, printMatrix=False):
@@ -109,12 +109,12 @@ class League(object):
   def _save_ranks(self, getPrev=True):
     '''Save the power rankings, optionally calculate change from previous week'''
     teams_sorted = self.sorted_teams(sort_key='power_rank', reverse=True)
-    save_ranks(teams_sorted, self.week, getPrev=getPrev)
+    save_ranks(teams_sorted, self.year, self.week, getPrev=getPrev)
 
   def _calc_tiers(self, bw=0.09, order=4, show_plot=False):
     '''Calculates tiers based on the power rankings'''
     teams_sorted = self.sorted_teams(sort_key='power_rank', reverse=True)
-    calc_tiers(teams_sorted, self.week, bw=bw, order=order, show=show_plot)
+    calc_tiers(teams_sorted, self.year, self.week, bw=bw, order=order, show=show_plot)
 
   def print_rankings(self):
     '''Print table of metrics and final power rankings'''
@@ -179,9 +179,10 @@ class League(object):
     Y_LOW  = [float(yl.strip()) for yl in self.config['Radar'].get('Y_LOW').split(',')]
     Y_HIGH = [float(yh.strip()) for yh in self.config['Radar'].get('Y_HIGH').split(',')]
     for t in self.teams:
-      make_radar(t, self.week, Y_LOW, Y_HIGH)
+      make_radar(t, self.year, self.week, Y_LOW, Y_HIGH)
     # Make welcome page power plot
-    make_power_plot(self.teams, self.week)
+    make_power_plot(self.teams, self.year, self.week)
     # Generate html files for team and summary pages
-    generate_web(self.teams, self.week, self.league_id, self.league_name)
+    get_themes = self.config['Web'].getboolean('get_themes', True)
+    generate_web(self.teams, self.year, self.week, self.league_id, self.league_name, themes=get_themes)
 

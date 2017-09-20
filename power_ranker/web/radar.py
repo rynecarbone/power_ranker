@@ -31,7 +31,7 @@ class Radar(object):
 
 
 #____________________________
-def make_radar( team, week, Y_LOW=[0,0,.4,50,-60,-5], Y_HIGH=[1,1,1.4,150,40,5] ):
+def make_radar( team, year, week, Y_LOW=[0,0,.4,50,-60,-5], Y_HIGH=[1,1,1.4,150,40,5] ):
   '''Makes radar plots and saves them to folder
      y_low is list of minimum y values (win pct, awp, sos, ppg, mov, streak)
      y_high is list of maximum y values (win pct, awp, sos, ppg, mov, streak)'''
@@ -66,6 +66,6 @@ def make_radar( team, week, Y_LOW=[0,0,.4,50,-60,-5], Y_HIGH=[1,1,1.4,150,40,5] 
   radar.plot( t_ranks_norm , "-", lw=2, color="g", alpha=0.4,label=team.teamName)
 
   fig.set_size_inches(6,6, forward=True)
-  out_dir = 'output/week%s/radar_plots/radar_%s.png'%(week,team.teamId)
+  out_dir = 'output/%s/week%s/radar_plots/radar_%s.png'%(year, week,team.teamId)
   os.makedirs(os.path.dirname(out_dir), exist_ok=True)
   fig.savefig(out_dir)

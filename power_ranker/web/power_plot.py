@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-#______________________________
-def make_power_plot(teams,week):
+#_____________________________________
+def make_power_plot(teams, year, week):
   '''Make plot of power ranking versus
     average score'''
   scores = []
@@ -69,5 +69,5 @@ def make_power_plot(teams,week):
   for i,leg_item in enumerate(ax.get_legend().legendHandles):
     leg_item.set_color(c[i])
   plt.ylim(len(teams)+1,0)
-  f.savefig('output/week%d/power_plot.png'%week,dpi=my_dpi*2,bbox_inches='tight')
+  f.savefig('output/%s/week%d/power_plot.png'%(year, week),dpi=my_dpi*2,bbox_inches='tight')
 

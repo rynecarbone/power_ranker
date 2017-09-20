@@ -149,7 +149,7 @@ def calc_power(teams, week, w_dom=0.21, w_lsq=0.18, w_col=0.18, w_awp=0.15,
     t.power_rank = 100*np.tanh(power/0.5)
 
 #________________________________________________________
-def calc_tiers(teams, week, bw=0.09, order=4, show=False):
+def calc_tiers(teams, year, week, bw=0.09, order=4, show=False):
   '''Calculate 3-5 tiers using Gaussian Kernal Density'''
   # Store rankings in list
   ranks = [t.power_rank for t in teams]
@@ -161,7 +161,7 @@ def calc_tiers(teams, week, bw=0.09, order=4, show=False):
   plt.plot(x_grid, kde(x_grid))
   if show: plt.show()
   # Create directory if it doesn't exist to save plot
-  out_name = 'output/week%s/tiers.png'%week
+  out_name = 'output/%s/week%s/tiers.png'%(year, week)
   os.makedirs(os.path.dirname(out_name), exist_ok=True)
   f2.savefig(out_name)
   plt.close()
@@ -181,11 +181,11 @@ def calc_tiers(teams, week, bw=0.09, order=4, show=False):
     t.tier =  tier
 
 #________________________________________
-def save_ranks(teams, week, getPrev=True):
+def save_ranks(teams, year, week, getPrev=True):
   '''Save the power rankings to a file, 
     optionally retreive previous week's rankings'''
   # Save power rankings (teamId:rank)
-  new_name = 'output/week%s/ranks_power.txt'%(week)
+  new_name = 'output/%s/week%s/ranks_power.txt'%(year, week)
   os.makedirs(os.path.dirname(new_name), exist_ok=True)
   f_new = open(new_name, 'w')
   # Write to file (teams should be passed sorted by ranking)
@@ -194,7 +194,7 @@ def save_ranks(teams, week, getPrev=True):
   f_new.close()
   # Save ESPN overall rankings teamId:rank
   teams_sorted_overall = sorted(teams, key=lambda x: (x.wins, x.pointsFor), reverse=True)
-  new_name = 'output/week%s/ranks_overall.txt'%(week)
+  new_name = 'output/%s/week%s/ranks_overall.txt'%(year, week)
   os.makedirs(os.path.dirname(new_name), exist_ok=True)
   f_new = open(new_name, 'w')
   # Write to file (sorted by ESPN rankings)
@@ -206,7 +206,7 @@ def save_ranks(teams, week, getPrev=True):
   if not getPrev: 
     return
   # Get prevoius power rankings
-  old_name = 'output/week%s/ranks_power.txt'%(week-1)
+  old_name = 'output/%s/week%s/ranks_power.txt'%(year, week-1)
   os.makedirs(os.path.dirname(old_name), exist_ok=True)
   f_old = open(old_name, 'r')
   for line in f_old:
@@ -219,7 +219,7 @@ def save_ranks(teams, week, getPrev=True):
         t.prev_rank = t_rk
   f_old.close()
   # Get Previous overall rankings
-  old_name = 'output/week%s/ranks_overall.txt'%(week-1)
+  old_name = 'output/%s/week%s/ranks_overall.txt'%(year, week-1)
   os.makedirs(os.path.dirname(old_name), exist_ok=True)
   f_old = open(old_name, 'r')
   for line in f_old:

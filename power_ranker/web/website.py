@@ -1,6 +1,8 @@
 import os
-import numpy as np
+import shutil
+from distutils.dir_util import copy_tree
 import pkg_resources
+import numpy as np
 
 #__________________
 def get_arrow(i, j):
@@ -125,7 +127,7 @@ def get_index(teams_sorted, teamId):
       return i+1
 
 #_______________________________
-def make_teams_page(teams, week):
+def make_teams_page(teams, year, week):
   '''Make teams page with stats, standings, game log, radar plots'''
   # Ordinal makes numbers like 2nd, 3rd, 4th etc 
   ordinal   = lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4]) # own function?
@@ -135,7 +137,7 @@ def make_teams_page(teams, week):
   for i,t in enumerate(sorted(teams, key=lambda x: x.power_rank, reverse=True)):
     first = t.owner.split()[0].title()
     logo  = t.logoUrl if len(t.logoUrl) > 4 else stock_url
-    out_name = 'output/%s/index.html'%first
+    out_name = 'output/%s/%s/index.html'%(year, first)
     template = pkg_resources.resource_filename('power_ranker','docs/template/player.html')
     # create output and directory if it doesn't exist
     os.makedirs(os.path.dirname(out_name), exist_ok=True)
@@ -207,9 +209,9 @@ def make_teams_page(teams, week):
 
 
 #________________________________
-def make_power_page(teams, week):
+def make_power_page(teams, year, week):
   '''Produces power rankings page'''
-  out_name = 'output/power.html'
+  out_name = 'output/%s/power.html'%year
   template = pkg_resources.resource_filename('power_ranker','docs/template/power.html')
   # create directory if doesn't already exist
   os.makedirs(os.path.dirname(out_name), exist_ok=True)
@@ -228,9 +230,9 @@ def make_power_page(teams, week):
 
 
 #________________________________
-def make_about_page(teams):
+def make_about_page(teams, year):
   '''Produces about page, updating week for power rankings'''  
-  out_name = 'output/about/index.html'
+  out_name = 'output/%s/about/index.html'%year
   template = pkg_resources.resource_filename('power_ranker','docs/template/about.html')
   # create directory if doesn't already exist
   os.makedirs(os.path.dirname(out_name), exist_ok=True)
@@ -243,9 +245,9 @@ def make_about_page(teams):
   
 
 #________________________________
-def make_welcome_page(week, league_id, league_name):
+def make_welcome_page(year, week, league_id, league_name):
   '''Produces welcome page, with power plot'''
-  out_name = 'output/index.html'
+  out_name = 'output/%s/index.html'%year
   template = pkg_resources.resource_filename('power_ranker','docs/template/welcome.html')
   # create directory if doesn't already exist
   os.makedirs(os.path.dirname(out_name), exist_ok=True)
@@ -264,13 +266,32 @@ def make_welcome_page(week, league_id, league_name):
         line = line.replace(s,r)
       f_out.write(line)
 
+#___________________________________________
+def copy_css_js_themes(year):
+  '''Copy the css and js files to make website 
+     look like it is not from 1990'''
+  # Specific themes
+  in_files = ['about.js','theme.js','theme.css','cover.css']
+  for f in in_files:
+    template = pkg_resources.resource_filename('power_ranker','docs/template/%s'%f)
+    local_file = os.path.join(os.getcwd(), 'output/%s/%s'%(year,f))
+    shutil.copyfile(template, local_file)
+  # Bootstrap dist and assets
+  boostrap_dirs = ['dist','assets']
+  for b in boostrap_dirs:
+    template_dir = pkg_resources.resource_filename('power_ranker','docs/template/%s'%b)
+    local_dir = os.path.join(os.getcwd(), 'output/%s'%(b))
+    copy_tree(template_dir, local_dir)
 
 #_________________________
-def generate_web(teams, week, league_id, league_name):
+def generate_web(teams, year, week, league_id, league_name, themes=True):
   '''Makes power rankings page
            team summary page
-           about page'''
-  make_power_page(teams, week)
-  make_teams_page(teams, week)
-  make_about_page(teams)
-  make_welcome_page(week,league_id, league_name)
+           about page
+    themes: flag to download bootstrap css/js themes to make html prety'''
+  make_power_page(teams, year, week)
+  make_teams_page(teams, year, week)
+  make_about_page(teams, year)
+  make_welcome_page(year, week,league_id, league_name)
+  if themes:
+    copy_css_js_themes(year)

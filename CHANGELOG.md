@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 - Updating website generation code
+- Now will copy bootrap css/js files to make raw html pretty
 - Creating command line scripts for downloading configuration file locally, and running rankings
 - Creating package to install with pip
 

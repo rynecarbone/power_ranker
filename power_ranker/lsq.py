@@ -6,7 +6,8 @@ import numpy as np
 class LSQ(object):
   '''Calculates the LSQ based rankings'''
 
-  def __init__(self, week, B_w=30., B_r=35., dS_max=35., beta_w=2.2, show=False):
+  def __init__(self, year, week, B_w=30., B_r=35., dS_max=35., beta_w=2.2, show=False):
+    self.year   = year
     self.week   = week
     self.B_w    = B_w   		
     self.B_r    = B_r   
@@ -101,7 +102,7 @@ class LSQ(object):
     if self.show == True:
       pl.show()
     # make dir if it doesn't exist already
-    out_name = 'output/week%s/lsq_iter_rankings.png'%self.week
+    out_name = 'output/%s/week%s/lsq_iter_rankings.png'%(self.year, self.week)
     os.makedirs(os.path.dirname(out_name), exist_ok=True)
     fig.savefig(out_name)
     pl.close()
