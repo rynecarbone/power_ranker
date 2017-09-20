@@ -127,7 +127,7 @@ def get_index(teams_sorted, teamId):
       return i+1
 
 #_______________________________
-def make_teams_page(teams, year, week):
+def make_teams_page(teams, year, week, league_name):
   '''Make teams page with stats, standings, game log, radar plots'''
   # Ordinal makes numbers like 2nd, 3rd, 4th etc 
   ordinal   = lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4]) # own function?
@@ -142,6 +142,7 @@ def make_teams_page(teams, year, week):
     # create output and directory if it doesn't exist
     os.makedirs(os.path.dirname(out_name), exist_ok=True)
     src = ['INSERTOWNER',
+           'INSERTLEAGUENAME',
            'INSERTWEEK',
            'IMAGELINK',
            'TEAMNAME',
@@ -156,6 +157,7 @@ def make_teams_page(teams, year, week):
            'RADARPLOT',
            'PLAYERDROPDOWN']
     rep = [t.owner,
+           league_name,
            'week%s'%week,
            logo,
            t.teamName,
@@ -209,7 +211,7 @@ def make_teams_page(teams, year, week):
 
 
 #________________________________
-def make_power_page(teams, year, week):
+def make_power_page(teams, year, week, league_name):
   '''Produces power rankings page'''
   out_name = 'output/%s/power.html'%year
   template = pkg_resources.resource_filename('power_ranker','docs/template/power.html')
@@ -217,9 +219,11 @@ def make_power_page(teams, year, week):
   os.makedirs(os.path.dirname(out_name), exist_ok=True)
   # source and replacement strings for lines in template file 
   src = ['INSERT WEEK',
+         'INSERTLEAGUENAME',
         'PLAYERDROPDOWN',
         'INSERT TABLE']
   rep = ['Week %s'%(week+1),
+         league_name,
          get_player_drop(teams, level=''),
          make_power_table(teams,week)]
   with open(template,'r') as f_in, open(out_name,'w') as f_out:
@@ -230,7 +234,7 @@ def make_power_page(teams, year, week):
 
 
 #________________________________
-def make_about_page(teams, year):
+def make_about_page(teams, year, league_name):
   '''Produces about page, updating week for power rankings'''  
   out_name = 'output/%s/about/index.html'%year
   template = pkg_resources.resource_filename('power_ranker','docs/template/about.html')
@@ -241,9 +245,17 @@ def make_about_page(teams, year):
       if 'PLAYERDROPDOWN' in line:
         new_line = get_player_drop(teams, level='../')
         line = line.replace('PLAYERDROPDOWN',new_line)
+      elif 'INSERTLEAGUENAME' in line:
+        line = line.replace('INSERTLEAGUENAME',league_name)
       f_out.write(line)
+  # Copy default images
+  in_pics = ['dom_graph.png','tiers_example.png']
+  for pic in in_pics:
+    p = pkg_resources.resource_filename('power_ranker','docs/template/%s'%pic)
+    local_p = os.path.join(os.getcwd(), 'output/%s/about/%s'%(year,pic))
+    shutil.copyfile(p, local_p)
   
-
+  
 #________________________________
 def make_welcome_page(year, week, league_id, league_name):
   '''Produces welcome page, with power plot'''
@@ -284,14 +296,15 @@ def copy_css_js_themes(year):
     copy_tree(template_dir, local_dir)
 
 #_________________________
-def generate_web(teams, year, week, league_id, league_name, themes=True):
+def generate_web(teams, year, week, league_id, league_name, doSetup=True):
   '''Makes power rankings page
            team summary page
            about page
-    themes: flag to download bootstrap css/js themes to make html prety'''
-  make_power_page(teams, year, week)
-  make_teams_page(teams, year, week)
-  make_about_page(teams, year)
-  make_welcome_page(year, week,league_id, league_name)
-  if themes:
+    doSetup: flag to download bootstrap css/js themes to make html pretty
+             and create the about page'''
+  make_power_page(teams, year, week, league_name)
+  make_teams_page(teams, year, week, league_name)
+  make_welcome_page(year, week, league_id, league_name)
+  if doSetup:
     copy_css_js_themes(year)
+    make_about_page(teams, year, league_name)

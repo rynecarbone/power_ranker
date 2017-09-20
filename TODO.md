@@ -8,9 +8,9 @@
 - Maybe run rankings for previous week if not already saved somewhere ... ? Might be tricky if it rewrites over something you didn't want it to.
 - What if multiple players wiht same name (drop down menu, folders, etc...)
 - Should the code be a class or something?
-- Welcome page: "My League" -- replace with league name
-- About page: default images need to be copied
-- Power.html: Template has league name hard coded as well, Maybe remove the "new write up here" text, add instructions in the tutorial instead
+- Add flavicon
+- See if FAAB league or not -> change FAAB bar to waiver order
+- Make sure team names are capitalized
 
 ### Command line arguments
 - Make argparse -> refine a bit

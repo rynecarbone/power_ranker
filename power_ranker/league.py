@@ -183,6 +183,6 @@ class League(object):
     # Make welcome page power plot
     make_power_plot(self.teams, self.year, self.week)
     # Generate html files for team and summary pages
-    get_themes = self.config['Web'].getboolean('get_themes', True)
-    generate_web(self.teams, self.year, self.week, self.league_id, self.league_name, themes=get_themes)
+    doSetup = self.config['Web'].getboolean('doSetup', True)
+    generate_web(self.teams, self.year, self.week, self.league_id, self.league_name, doSetup=doSetup)
 
