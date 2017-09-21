@@ -3,7 +3,12 @@ class Settings(object):
     '''Creates Settings object'''
     def __init__(self, data):
         for k in sorted(data['leaguesettings'].keys()):
-          pprint.pprint(k)
+          #if len(data['leaguesettings'][k])<2:
+          if not isinstance(data['leaguesettings'][str(k)], list) and not isinstance(data['leaguesettings'][str(k)], dict):
+            a = 1
+            #pprint.pprint('%20s: %s'%(k,data['leaguesettings'][k]))
+          else:
+            pprint.pprint(k)
         self.reg_season_count = data['leaguesettings']['finalRegularSeasonMatchupPeriodId']
         self.undroppable_list = data['leaguesettings']['usingUndroppableList']
         self.veto_votes_required = data['leaguesettings']['vetoVotesRequired']
@@ -20,6 +25,9 @@ class Settings(object):
         self.status = data['metadata']['status']
         self.year = data['metadata']['seasonId']
         self.server_date = data['metadata']['serverDate']
+        self.use_faab = data['leaguesettings']['usesPlayerAcquisitionBudget']
+        self.max_faab = data['leaguesettings']['playerAcquisitionBudget']
+        self.min_bin  = data['leaguesettings']['minimumBidAmount']
         self._fetch_roster_settings(data)
         self._fetch_tie_rules(data)
 
