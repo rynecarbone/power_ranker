@@ -1,10 +1,11 @@
 import requests
 import configparser
 from .team import Team
+from .settings import Settings
 from .two_step_dom import TwoStepDom
 from .lsq import LSQ
 from .colley import Colley
-from .utils import replace_opponents, calc_mov, calc_wins_losses, calc_sos, calc_luck, calc_power, save_ranks, calc_tiers
+from .utils import fix_teamId, replace_opponents, calc_mov, calc_wins_losses, calc_sos, calc_luck, calc_power, save_ranks, calc_tiers
 from .web.radar import make_radar
 from .web.website import generate_web
 from .web.power_plot import make_power_plot
@@ -22,13 +23,30 @@ class League(object):
     self.teams       = []
     self.config_file = config_file
     self.ENDPOINT    = "http://games.espn.com/ffl/api/v2/"
-    self._get_config()
-    self._set_basic_info()
-    self._fetch_teams()
-    self._update_for_week(self.week)
+    self._fetch_league()
 
   def __repr__(self):
     return 'League %s, %s Season' % (self.league_id, self.year)
+
+  def _fetch_league(self):
+    '''Scrape league info from ESPN'''
+    # Read config
+    self._get_config()
+    self._set_basic_info()
+    # Scrape info
+    url = "%sleagueSettings?leagueId=%s&seasonId=%s"
+    r = requests.get(url%(self.ENDPOINT, self.league_id, self.year))
+    self.status = r.status_code
+    data = r.json()
+		#if self.status == 401:
+	#		raise PrivateLeagueException(data['error'][0]['message'])
+    #elif self.status == 404:
+    #  raise InvalidLeagueException(data['error'][0]['message'])
+    #elif self.status != 200:
+    #  raise UnknownLeagueException('Unknown %s Error' % self.status)
+    self._fetch_teams(data)
+    self._fetch_settings(data)
+    self._update_for_week(self.week)
 
   def _get_config(self):
     '''Read configuration file'''
@@ -43,18 +61,24 @@ class League(object):
     self.year        = self.config['League Info'].getint('year')
     self.week        = self.config['League Info'].getint('week')
 
-  def _fetch_teams(self):
+  def sorted_teams(self, sort_key='teamId', reverse=False):
+    '''Returns league teams sorted by the string <sort_key> 
+       and optionally in <reverse> order'''
+    return sorted(self.teams, key=lambda x: getattr(x,sort_key), reverse=reverse)
+
+  def _fetch_teams(self, data):
     '''Scrape info for each team from ESPN'''
-    url = "%sleagueSettings?leagueId=%s&seasonId=%s"
-    r = requests.get(url%(self.ENDPOINT, self.league_id, self.year))
-    data = r.json()
     teams = data['leaguesettings']['teams']
     self.N_teams = len(teams)
     for team in teams:
       self.teams.append(Team(teams[team]))
-    # Replace opponent with team instance
+    fix_teamId(self.sorted_teams(sort_key='teamId'))
     replace_opponents(self.teams)
-  
+
+  def _fetch_settings(self, data):
+    '''Scrape league settings info'''
+    self.settings = Settings(data)
+
   def _update_for_week(self, week):
     '''Update MOV, wins and loses, based on week Numer'''
     # Set the week number
@@ -65,11 +89,6 @@ class League(object):
     calc_mov(self.teams)
     # Calculate wins and loses based on week
     calc_wins_losses(self.week, self.teams)
-
-  def sorted_teams(self, sort_key='teamId', reverse=False):
-    '''Returns league teams sorted by the string <sort_key> 
-       and optionally in <reverse> order'''
-    return sorted(self.teams, key=lambda x: getattr(x,sort_key), reverse=reverse)
 
   def _calc_dom(self, sq_weight=0.25, decay_penalty=0.5):
     '''Calculate the two step dominance rankings'''

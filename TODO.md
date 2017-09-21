@@ -7,6 +7,7 @@
 ### Website generation
 - Maybe run rankings for previous week if not already saved somewhere ... ? Might be tricky if it rewrites over something you didn't want it to.
 - What if multiple players wiht same name (drop down menu, folders, etc...)
+	- team pages are stored with first name only - maybe have to do last name as well
 - Should the code be a class or something?
 - Add flavicon
 - See if FAAB league or not -> change FAAB bar to waiver order

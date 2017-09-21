@@ -5,6 +5,24 @@ from scipy.stats import gaussian_kde
 from scipy.signal import argrelmin
 
 #___________________________
+def fix_teamId(teams):
+  '''Sometimes teamIds skip numbers if people from your league have quit,
+    For now, just redefining teamId by number of teams,
+    Using that to also fix opponentId.
+    Teams should be passed, ordered by ascending teamId'''
+  old = [] # store old id to find in schedule
+  new = [] # store new ids to replace
+  for i,t in enumerate(teams):
+    old.append(t.teamId)
+    new.append(i+1)
+    t.teamId = i+1 
+  # Replace opponent id in schedule
+  for t in teams:
+    for w,o in enumerate(t.schedule):
+      new_opp = new[old.index(o)] 
+      t.schedule[w] = new_opp 
+
+#___________________________
 def replace_opponents(teams):
   '''Replace team id number with team object'''
   for t in teams:

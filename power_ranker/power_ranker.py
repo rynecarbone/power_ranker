@@ -4,7 +4,7 @@ from .league import League
 def main():
   
   # Specify configuration
-  my_config_file = 'docs/default_config.cfg'
+  my_config_file = 'docs/phys_config.cfg'
 
   # Retrieve league info 
   league = League( config_file=my_config_file )
@@ -15,7 +15,7 @@ def main():
   league.get_power_rankings()
 
   # Generate website 
-  league.make_website()  
+ # league.make_website()  
 
   # Calculate playoff odds
   # po.calc_playoffs(teams, week)
