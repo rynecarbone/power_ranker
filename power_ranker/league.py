@@ -5,7 +5,18 @@ from .settings import Settings
 from .two_step_dom import TwoStepDom
 from .lsq import LSQ
 from .colley import Colley
-from .utils import fix_teamId, replace_opponents, calc_mov, calc_wins_losses, calc_sos, calc_luck, calc_power, save_ranks, calc_tiers
+from .exception import (PrivateLeagueException,
+                        InvalidLeagueException,
+                        UnknownLeagueException, )
+from .utils import (fix_teamId, 
+                    replace_opponents, 
+                    calc_mov, 
+                    calc_wins_losses, 
+                    calc_sos, 
+                    calc_luck, 
+                    calc_power, 
+                    save_ranks, 
+                    calc_tiers)
 from .web.radar import make_radar
 from .web.website import generate_web
 from .web.power_plot import make_power_plot
@@ -19,10 +30,11 @@ class League(object):
     self.league_id   = '' 
     self.year        = ''
     self.week        = ''
-    self.N_teams     = 0.
     self.teams       = []
     self.config_file = config_file
     self.ENDPOINT    = "http://games.espn.com/ffl/api/v2/"
+    self.s2          = None 
+    self.swid        = None
     self._fetch_league()
 
   def __repr__(self):
@@ -33,24 +45,29 @@ class League(object):
     # Read config
     self._get_config()
     self._set_basic_info()
+    params = { 'leagueId': self.league_id,
+							 'seasonId': self.year }
+    cookies = None
+    if self.s2 and self.swid:
+      cookies = { 'espn_s2': self.s2,
+									'SWID'   : self.swid }
     # Scrape info
-    url = "%sleagueSettings?leagueId=%s&seasonId=%s"
-    r = requests.get(url%(self.ENDPOINT, self.league_id, self.year))
+    r = requests.get('%sleagueSettings' % (self.ENDPOINT, ), params=params, cookies=cookies)
     self.status = r.status_code
     data = r.json()
-		#if self.status == 401:
-	#		raise PrivateLeagueException(data['error'][0]['message'])
-    #elif self.status == 404:
-    #  raise InvalidLeagueException(data['error'][0]['message'])
-    #elif self.status != 200:
-    #  raise UnknownLeagueException('Unknown %s Error' % self.status)
+    if self.status == 401:
+      raise PrivateLeagueException(data['error'][0]['message'])
+    elif self.status == 404:
+      raise InvalidLeagueException(data['error'][0]['message'])
+    elif self.status != 200:
+      raise UnknownLeagueException('Unknown %s Error' % self.status)
     self._fetch_teams(data)
     self._fetch_settings(data)
     self._update_for_week(self.week)
 
   def _get_config(self):
     '''Read configuration file'''
-    config = configparser.ConfigParser()
+    config = configparser.RawConfigParser(allow_no_value=True)
     config.read(self.config_file)
     self.config = config
   
@@ -60,6 +77,8 @@ class League(object):
     self.league_id   = self.config['League Info'].getint('league_id')
     self.year        = self.config['League Info'].getint('year')
     self.week        = self.config['League Info'].getint('week')
+    self.s2          = self.config['Private League'].get('s2', None)
+    self.swid        = self.config['Private League'].get('swid', None)
 
   def sorted_teams(self, sort_key='teamId', reverse=False):
     '''Returns league teams sorted by the string <sort_key> 
@@ -69,7 +88,6 @@ class League(object):
   def _fetch_teams(self, data):
     '''Scrape info for each team from ESPN'''
     teams = data['leaguesettings']['teams']
-    self.N_teams = len(teams)
     for team in teams:
       self.teams.append(Team(teams[team]))
     fix_teamId(self.sorted_teams(sort_key='teamId'))
@@ -93,7 +111,7 @@ class League(object):
   def _calc_dom(self, sq_weight=0.25, decay_penalty=0.5):
     '''Calculate the two step dominance rankings'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
-    dom = TwoStepDom( self.N_teams, self.week, sq_weight=sq_weight, decay_penalty=decay_penalty)
+    dom = TwoStepDom( self.settings.n_teams, self.week, sq_weight=sq_weight, decay_penalty=decay_penalty)
     dom.get_ranks(teams_sorted)
   
   def _calc_lsq(self, B_w=30., B_r=35., dS_max=35., beta_w=2.2, show_plot=False):
@@ -105,7 +123,7 @@ class League(object):
   def _calc_colley(self, printMatrix=False):
     '''Calculates and assigns colley rankings for each team in the league'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
-    colley = Colley(self.week, self.N_teams, printM=printMatrix)
+    colley = Colley(self.week, self.settings.n_teams, printM=printMatrix)
     colley.get_ranks(teams_sorted)
 
   def _calc_sos(self, rank_power=2.37):
@@ -203,5 +221,5 @@ class League(object):
     make_power_plot(self.teams, self.year, self.week)
     # Generate html files for team and summary pages
     doSetup = self.config['Web'].getboolean('doSetup', True)
-    generate_web(self.teams, self.year, self.week, self.league_id, self.league_name, doSetup=doSetup)
+    generate_web(self.teams, self.year, self.week, self.league_id, self.league_name, self.settings, doSetup=doSetup)
 

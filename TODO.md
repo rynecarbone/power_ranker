@@ -15,6 +15,8 @@
 
 ### Command line arguments
 - Make argparse -> refine a bit
+- Make private league easier
+- Attribute code for settings/private league
 
 # Algorithms
 - Look at normalization funcitons -- standardize?

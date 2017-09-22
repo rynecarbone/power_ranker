@@ -6,11 +6,11 @@ class Team(object):
     self.teamId        = data['teamId']
     self.teamAbbrev    = data['teamAbbrev']
     self.teamName      = "%s %s"%(data['teamLocation'], data['teamNickname'])
-    self.owner         = "%s %s"%(data['owners'][0]['firstName'], data['owners'][0]['lastName'])
+    self.owner         = "%s %s"%(data['owners'][0]['firstName'].title(), 
+                                  data['owners'][0]['lastName'].title())
     self.logoUrl       = data['owners'][0]['photoUrl'] if 'logoUrl' not in data.keys() else data['logoUrl']
     self.divisionId    = data['division']['divisionId']
     self.divisionName  = data['division']['divisionName']
-    self.max_FAAB      = 100 # FIXME
     self.faab          = data['teamTransactions']['acquisitionBudgetSpent']
     self.trans         = data['teamTransactions']['overallAcquisitionTotal']
     self.trades        = data['teamTransactions']['trades']

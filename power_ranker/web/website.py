@@ -109,13 +109,14 @@ def get_player_drop(teams, level=''):
      FIXME - what if duplicates? '''
   li = '<li>'
   il = '</li>'
-  a  = '<a href="%s%s/index.html">%s</a>'
+  a  = '<a href="%s%s_%s/index.html">%s</a>'
 
   new_line = ''
 
   for t in sorted(teams, key=lambda x: x.owner):
     first = t.owner.split()[0].title()
-    new_line += li + a%(level,first,t.owner.title()) + il
+    last = t.owner.split()[1].title()
+    new_line += li + a%(level,first,last,t.owner.title()) + il
 
   return new_line
 
@@ -127,17 +128,18 @@ def get_index(teams_sorted, teamId):
       return i+1
 
 #_______________________________
-def make_teams_page(teams, year, week, league_name):
+def make_teams_page(teams, year, week, league_name, settings):
   '''Make teams page with stats, standings, game log, radar plots'''
   # Ordinal makes numbers like 2nd, 3rd, 4th etc 
-  ordinal   = lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4]) # own function?
+  ordinal   = lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4])
   # Use if player has no ESPN image ...
   stock_url = 'http://www.suttonsilver.co.uk/wp-content/uploads/blog-stock-03.jpg'  
   # Make team page for each owner
   for i,t in enumerate(sorted(teams, key=lambda x: x.power_rank, reverse=True)):
     first = t.owner.split()[0].title()
+    last  = t.owner.split()[1].title()
     logo  = t.logoUrl if len(t.logoUrl) > 4 else stock_url
-    out_name = 'output/%s/%s/index.html'%(year, first)
+    out_name = 'output/%s/%s_%s/index.html'%(year, first, last)
     template = pkg_resources.resource_filename('power_ranker','docs/template/player.html')
     # create output and directory if it doesn't exist
     os.makedirs(os.path.dirname(out_name), exist_ok=True)
@@ -178,32 +180,38 @@ def make_teams_page(teams, year, week, league_name):
         if 'INSERT_TPF_PB' in line:
           pf_sort = sorted(teams, key=lambda x: x.pointsFor, reverse=True)
           pf_rank = get_index(pf_sort, t.teamId)
+          # want 1st to be 100%
           line = make_progress_bar('Total Points For: %.2f'%float(t.pointsFor),
-                                  100.*float( len(teams)+1-pf_rank )/float(len(teams)),# want 1st to be 100% 
+                                  100.*float( settings.n_teams+1-pf_rank )/float(settings.n_teams), 
                                   ordinal(int(pf_rank))  )
         elif 'INSERT_TPA_PB' in line:
           pa_sort = sorted(teams, key=lambda x: x.pointsAgainst, reverse=True)
           pa_rank = get_index(pa_sort, t.teamId)
           line = make_progress_bar('Total Points Against: %.2f'%float(t.pointsAgainst), 
-                                  100.*float( len(teams)+1-pa_rank )/float(len(teams)),  
+                                  100.*float( settings.n_teams+1-pa_rank )/float(settings.n_teams),  
                                   ordinal(int(pa_rank))  )
         elif 'INSERT_HS_PB' in line:
           hs_sort = sorted(teams, key=lambda x: max(x.scores[:week]), reverse=True)
           hs_rank = get_index(hs_sort, t.teamId)
           line = make_progress_bar('High Score: %.2f'%max(t.scores[:week]), 
-                                  100.*float( len(teams)+1-hs_rank)/float(len(teams)), 
+                                  100.*float( settings.n_teams+1-hs_rank)/float(settings.n_teams), 
                                   ordinal(int(hs_rank))  )
         elif 'INSERT_LS_PB' in line:
           ls_sort = sorted(teams, key=lambda x: min(x.scores[:week]), reverse=True)
           ls_rank = get_index(ls_sort, t.teamId)
           line = make_progress_bar('Low Score: %.2f'%min(t.scores[:week]), 
-                                  100.*float( len(teams)+1-ls_rank)/float(len(teams)), 
+                                  100.*float( settings.n_teams+1-ls_rank)/float(settings.n_teams), 
                                   ordinal(int(ls_rank))  )
         elif 'INSERT_FAAB_PB' in line:
-          max_FAAB = t.max_FAAB
-          line = make_progress_bar('FAAB Remaining', 
-                                  float(max_FAAB-t.faab)*(100./max_FAAB), 
-                                  int(max_FAAB-t.faab), max_FAAB ) 
+          if settings.use_faab:
+            max_FAAB = float(settings.max_faab)
+            line = make_progress_bar('FAAB Remaining', 
+                                     float(max_FAAB-t.faab)*(100./max_FAAB), 
+                                     int(max_FAAB-t.faab), max_FAAB )
+          else:
+            line = make_progress_bar('Waiver Priority',
+                                     100*float(settings.n_teams+1-t.waiver)/float(settings.n_teams),
+                                     ordinal(int(t.waiver)) )
         elif 'INSERTTABLEBODY' in line:
           line = make_game_log(t, week)
         # after checking all substitutions, finally write each line
@@ -296,14 +304,14 @@ def copy_css_js_themes(year):
     copy_tree(template_dir, local_dir)
 
 #_________________________
-def generate_web(teams, year, week, league_id, league_name, doSetup=True):
+def generate_web(teams, year, week, league_id, league_name, settings, doSetup=True):
   '''Makes power rankings page
            team summary page
            about page
     doSetup: flag to download bootstrap css/js themes to make html pretty
              and create the about page'''
   make_power_page(teams, year, week, league_name)
-  make_teams_page(teams, year, week, league_name)
+  make_teams_page(teams, year, week, league_name, settings)
   make_welcome_page(year, week, league_id, league_name)
   if doSetup:
     copy_css_js_themes(year)
