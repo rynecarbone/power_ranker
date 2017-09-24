@@ -25,7 +25,6 @@ def get_arrow(i, j):
 
   return arrow
 
-
 #________________________________________
 def make_progress_bar(title, value, rank, max_FAAB=100):
   '''Makes progress bar with label and value'''
@@ -136,9 +135,9 @@ def make_teams_page(teams, year, week, league_name, settings):
   stock_url = 'http://www.suttonsilver.co.uk/wp-content/uploads/blog-stock-03.jpg'  
   # Make team page for each owner
   for i,t in enumerate(sorted(teams, key=lambda x: x.power_rank, reverse=True)):
+    logo  = t.logoUrl if len(t.logoUrl) > 4 else stock_url
     first = t.owner.split()[0].title()
     last  = t.owner.split()[1].title()
-    logo  = t.logoUrl if len(t.logoUrl) > 4 else stock_url
     out_name = 'output/%s/%s_%s/index.html'%(year, first, last)
     template = pkg_resources.resource_filename('power_ranker','docs/template/player.html')
     # create output and directory if it doesn't exist
@@ -221,11 +220,8 @@ def make_teams_page(teams, year, week, league_name, settings):
 #________________________________
 def make_power_page(teams, year, week, league_name):
   '''Produces power rankings page'''
-  out_name = 'output/%s/power.html'%year
-  template = pkg_resources.resource_filename('power_ranker','docs/template/power.html')
-  # create directory if doesn't already exist
-  os.makedirs(os.path.dirname(out_name), exist_ok=True)
-  # source and replacement strings for lines in template file 
+  local_file = 'output/%s/power.html'%year
+  template   = pkg_resources.resource_filename('power_ranker','docs/template/power.html')
   src = ['INSERT WEEK',
          'INSERTLEAGUENAME',
         'PLAYERDROPDOWN',
@@ -234,28 +230,21 @@ def make_power_page(teams, year, week, league_name):
          league_name,
          get_player_drop(teams, level=''),
          make_power_table(teams,week)]
-  with open(template,'r') as f_in, open(out_name,'w') as f_out:
-    for line in f_in:
-      for (s,r) in zip(src, rep):
-        line = line.replace(s, r)
-      f_out.write(line)
+  # Write from template to local, with replacements
+  output_with_replace(template, local_file, src, rep)
 
 
 #________________________________
 def make_about_page(teams, year, league_name):
   '''Produces about page, updating week for power rankings'''  
-  out_name = 'output/%s/about/index.html'%year
-  template = pkg_resources.resource_filename('power_ranker','docs/template/about.html')
-  # create directory if doesn't already exist
-  os.makedirs(os.path.dirname(out_name), exist_ok=True)
-  with open(template,'r') as f_in, open(out_name,'w') as f_out:
-    for line in f_in:
-      if 'PLAYERDROPDOWN' in line:
-        new_line = get_player_drop(teams, level='../')
-        line = line.replace('PLAYERDROPDOWN',new_line)
-      elif 'INSERTLEAGUENAME' in line:
-        line = line.replace('INSERTLEAGUENAME',league_name)
-      f_out.write(line)
+  local_file = 'output/%s/about/index.html'%year
+  template   = pkg_resources.resource_filename('power_ranker','docs/template/about.html')
+  src = ['PLAYERDROPDOWN',
+         'INSERTLEAGUENAME']
+  rep = [get_player_drop(teams, level='../'),
+         league_name]
+  # Write from template to local, with replacements
+  output_with_replace(template, local_file, src, rep)
   # Copy default images
   in_pics = ['dom_graph.png','tiers_example.png']
   for pic in in_pics:
@@ -267,10 +256,8 @@ def make_about_page(teams, year, league_name):
 #________________________________
 def make_welcome_page(year, week, league_id, league_name):
   '''Produces welcome page, with power plot'''
-  out_name = 'output/%s/index.html'%year
-  template = pkg_resources.resource_filename('power_ranker','docs/template/welcome.html')
-  # create directory if doesn't already exist
-  os.makedirs(os.path.dirname(out_name), exist_ok=True)
+  local_file = 'output/%s/index.html'%year
+  template   = pkg_resources.resource_filename('power_ranker','docs/template/welcome.html')
   # Source and replacement strings from template
   src = ['INSERTWEEK',
          'INSERTNEXT',
@@ -280,9 +267,20 @@ def make_welcome_page(year, week, league_id, league_name):
          'Week %d'%(week+1),
          str(league_id),
          str(league_name)]
-  with open(template,'r') as f_in, open(out_name,'w') as f_out:
+  # Write from template to local, with replacements
+  output_with_replace(template, local_file, src, rep)
+
+  
+#_______________________________________________
+def output_with_replace(template, local_file, src, rep):
+  '''Write the <template> file contents to <local_file>
+     Replace all instances from list <src> with parallel
+     entry in list <rep>'''
+  # create directory if doesn't already exist
+  os.makedirs(os.path.dirname(local_file), exist_ok=True)
+  with open(template, 'r') as f_in, open(local_file, 'w') as f_out:
     for line in f_in:
-      for (s,r) in zip(src, rep):
+      for (s, r) in zip(src, rep):
         line = line.replace(s,r)
       f_out.write(line)
 

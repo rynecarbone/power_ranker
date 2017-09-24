@@ -6,16 +6,15 @@
 
 ### Website generation
 - Maybe run rankings for previous week if not already saved somewhere ... ? Might be tricky if it rewrites over something you didn't want it to.
-- What if multiple players wiht same name (drop down menu, folders, etc...)
-	- team pages are stored with first name only - maybe have to do last name as well
 - Should the code be a class or something?
 - Add flavicon
-- See if FAAB league or not -> change FAAB bar to waiver order
-- Make sure team names are capitalized
+
+### Classes
+- Make class for rankings
+- Make Web a class, inherit rankings etc from teams
+- Simplify team objects by inheriting other smaller classes to organize its member data
 
 ### Command line arguments
-- Make argparse -> refine a bit
-- Make private league easier
 - Attribute code for settings/private league
 
 # Algorithms
@@ -29,11 +28,6 @@
 - do both for power rankings and espn rankings
 - maybe add to team page?
 
-### Make Documentation for Publishing Website
-- Move /output folder somewhere better? 
-- How to make it easier to upload to github pages?
-- Make sure paths in code still work
-
 ### Testing
 - Implement some unit tests
 
@@ -41,5 +35,3 @@
 - Something breaks with number of teams changing (see Physics League...)
 - Have more than zero error handling
 
-# Misc.
-- power_ranker/power_ranker.py doesn't run as a script from directory with setup.py --> figure out how to fix the relative import thingy ... maybe just remove it...
