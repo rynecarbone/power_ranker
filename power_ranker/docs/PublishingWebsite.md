@@ -1,7 +1,7 @@
 # Publishing Power Rankings to a Website
 After generating the html and css files containing your power rankings, you need
 a place to host the content. Below is an example of how to create a personal 
-GitHub Pages site where you can host your rankings.
+GitHub Pages site where you can host your rankings. 
 
 ## Make a Personal GitHub Pages Site
 Please refer to [GitHub Pages documentation](https://pages.github.com) for further details
@@ -54,4 +54,25 @@ git push -u origin master
 
 ### Visit your site
 - Navigate to https://username.github.io on any browser
+
+
+## Getting the Rankings Website on Your GitHub Pages Site
+After you have run the rankings and produced the website files, you an copy them
+over to your GitHub pages repository.
+
+- Create a subdirectory to organize your site structure:
+```bash
+cd usernamegithub.io
+mkdir ff
+```
+
+- Copy the website files from the `output/` directory into your new website 
+subdirectory. If you ran the rankings on the Desktop, for example:
+```bash
+cp -r ~/Desktop/output/ ff/
+```
+
+- Commit and sync your changes
+
+- Visit your Github pages to view the rankings: https://username.github.io/ff/2017 
 
