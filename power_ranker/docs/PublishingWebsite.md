@@ -66,8 +66,8 @@ cd usernamegithub.io
 mkdir ff
 ```
 
-- Copy the website files from the `output/` directory into your new website 
-subdirectory. If you ran the rankings on the Desktop, for example:
+- Copy the generated website files from the `output/` directory into your new GitHub Pages 
+subdirectory. If you ran the power rankings code in the Desktop directory, for example:
 ```bash
 cp -r ~/Desktop/output/ ff/
 ```
