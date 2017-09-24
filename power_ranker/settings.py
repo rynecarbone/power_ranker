@@ -21,7 +21,7 @@ class Settings(object):
             self.trade_deadline = data['leaguesettings']['tradeDeadline']
         except:
             self.trade_deadline = 'Unknown'
-        self.name        = data['leaguesettings']['name']
+        self.league_name = data['leaguesettings']['name']
         self.status      = data['metadata']['status']
         self.year        = data['metadata']['seasonId']
         self.server_date = data['metadata']['serverDate']

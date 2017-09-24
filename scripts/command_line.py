@@ -9,55 +9,60 @@ from power_ranker.private import PrivateLeague
 #_______________________________
 def run_cl_rankings(config_file):
   '''Given local config file, run power rankings from CL'''
+  print('Using {} to generate power rankings'.format(config_file))
   my_league = League(config_file)
   my_league.get_power_rankings()
   my_league.make_website()
 
 #________________________________________________
-def set_local_cfg(name, leagueid, year, week):
-  '''Run rankings with user supplied name, leagueid, year and week'''
-  default_cfg = pkg_resources.resource_filename('power_ranker','docs/default_config.cfg')
-  local_cfg = os.path.join(os.getcwd(),'MY_LOCAL_CONFIG.cfg')
-  src = ['league_name','league_id','year','week']
-  rep = [name, leagueid, year, week]
-  with open(default_cfg,'r') as f1, open(local_cfg,'w') as f2:
-    for line in f1:
-      for (s,r) in zip(src, rep):
-        if s in line: line = '%s = %s'%(s,r)
-      f2.write('%s'%line)
+def set_local_cfg(leagueid, year, week, private_league=False):
+  '''Run rankings with user supplied leagueid, year, and week'''
+  print('Using user input:\nLeague ID: {}\nYear: {}\nWeek: {}'.format(
+      leagueid, year, week
+  ))
+  src = ['league_id','year','week']
+  rep = [leagueid, year, week]
+  copy_config(src, rep, private_league=private_league)
   run_cl_rankings(local_cfg)
 
-#________________
-def copy_config(private_league=False):
-  '''Copy default configuration file locally for user to edit'''
+#_________________________________________________________
+def copy_config(src=None, rep=None, private_league=False):
+  '''Copy default configuration file locally for user to edit
+    Optionally pass list of lines to replace in configuration file'''
   my_data = pkg_resources.resource_filename('power_ranker', "docs/default_config.cfg")
   my_local_data = os.path.join(os.getcwd(),'MY_LOCAL_CONFIG.cfg')
-  print('Creating local copy of: {}\nTo local destination: {}'.format(
-    my_data,
-    my_local_data
+  print('Creating copy of: {}\nTo local destination: {}'.format(
+    my_data, my_local_data
   ))
-#  shutil.copyfile(my_data, my_local_data)
+  # If private league, get cookies
   if private_league:
-    user = input('Username: ')
-    pw   = getpass.getpass('Password: ') 
-    pl = PrivateLeague(user, pw)
-    pl.authorize()
-    s2, swid = pl.get_cookies()
-    src = ['s2', 'swid']
-    rep = ['s2 = %s'%s2, 'swid = %s'%swid]
-    with open(my_data,'r') as f_in, open(my_local_data,'w') as f_out:
-      for line in f_in:
-        for (s,r) in zip(src, rep):
-          line = line.replace(s,r)
-        f_out.write(line)
-  
+    src += ['s2', 'swid']
+    rep += get_private_cookies()
+  # Make any specified changes to local copy of default config
+  with open(my_data,'r') as f_in, open(my_local_data,'w') as f_out:
+    for line in f_in:
+      for (s,r) in zip(src, rep):
+        if s in line and '#' not in line:
+          line = '%s = %s'%(s,r) 
+    f_out.write(line)
+
+#_______________________
+def get_private_cookies():
+  '''User enters in log in information for private league,
+    Cookies are returned so API can access private league info'''
+  user = input('Username: ')
+  pw   = getpass.getpass('Password: ')
+  pl = PrivateLeague(user, pw)
+  pl.authorize()
+  s2, swid = pl.get_cookies()
+  return [s2, swid]
+
 #_________
 def main():
   '''Run power_ranker from command line
      Can download configuration file to edit, and then
      pass it to run rankings'''
   parser = argparse.ArgumentParser()
-  parser.add_argument('-n', '--name', help='League Name')
   parser.add_argument('-l', '--leagueid', help='ESPN public League ID')
   parser.add_argument('-y', '--year', help='Year to retreive')
   parser.add_argument('-w', '--week', help='Week to analyze')
@@ -70,14 +75,10 @@ def main():
     copy_config(private_league=args.private)
   # Supplied config file to get rankings  
   elif args.config:
-    print('Using {} to generate power rankings'.format(args.config))
     run_cl_rankings(args.config)
   # Supplied league information, use rest of default info
-  elif args.name and args.leagueid and args.year and args.week:
-    print('Using user input:\nLeague Name: {}\nLeague ID: {}\nYear: {}\nWeek: {}'.format(
-      args.name, args.leagueid, args.year, args.week
-    ))
-    set_local_cfg(args.name, args.leagueid, args.year, args.week)
+  elif args.leagueid and args.year and args.week:
+    set_local_cfg(args.leagueid, args.year, args.week, private_league=args.private)
   # Incomplete information
   else:
     parser.print_help()
@@ -85,5 +86,4 @@ def main():
 
 #________________________
 if __name__ == '__main__':
-  print('Here')
   main()

@@ -26,7 +26,6 @@ class League(object):
   '''Given ESPN public league information, collects stats and creates
      team objects for all teams'''
   def __init__(self, config_file='default_config.cfg'):
-    self.league_name = ''
     self.league_id   = '' 
     self.year        = ''
     self.week        = ''
@@ -38,7 +37,7 @@ class League(object):
     self._fetch_league()
 
   def __repr__(self):
-    return 'League %s, %s Season' % (self.league_id, self.year)
+    return 'League %s (%s), %s Season' % (self.settings.league_name, self.league_id, self.year)
 
   def _fetch_league(self):
     '''Scrape league info from ESPN'''
@@ -73,7 +72,6 @@ class League(object):
   
   def _set_basic_info(self):
     '''Set league id, week, year'''
-    self.league_name = self.config['League Info'].get('league_name')
     self.league_id   = self.config['League Info'].getint('league_id')
     self.year        = self.config['League Info'].getint('year')
     self.week        = self.config['League Info'].getint('week')
@@ -221,5 +219,5 @@ class League(object):
     make_power_plot(self.teams, self.year, self.week)
     # Generate html files for team and summary pages
     doSetup = self.config['Web'].getboolean('doSetup', True)
-    generate_web(self.teams, self.year, self.week, self.league_id, self.league_name, self.settings, doSetup=doSetup)
+    generate_web(self.teams, self.year, self.week, self.league_id, self.settings.league_name, self.settings, doSetup=doSetup)
 
