@@ -3,12 +3,13 @@ After generating the html and css files containing your power rankings, you need
 a place to host the content. Below is an example of how to create a personal 
 GitHub Pages site where you can host your rankings.
 
-# Make a Personal GitHub Pages site
-Please refer to GitHub Pages documentation for further details: https://pages.github.com
+## Make a Personal GitHub Pages Site
+Please refer to [GitHub Pages documentation](https://pages.github.com) for further details
 
 ### Create a repository
-- On your GitHub, create a repository called 'username.github.io'
+- Log into your GitHub, create a repository called 'username.github.io'
 where 'username' is your actual username on GitHub
+- If you don't have a GitHub account, [create one](https://github.com/join?source=header-home)
 
 ### Clone the repository 
 - If using terminal, cd to folder where you wish to put the project
@@ -29,7 +30,7 @@ echo "Hello World" > index.html
 
 - If using a desktop client, add a file called index.html 
 to your project with the following content:
-```bash
+```html
 <!DOCTYPE html>
 <html>
 <body>
