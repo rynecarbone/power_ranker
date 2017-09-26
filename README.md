@@ -52,7 +52,7 @@ Week: 3
 Creating copy of: /Path/To/power_ranker/docs/default_config.cfg
 To local destination: /Path/To/Current/Dir/MY_LOCAL_CONFIG.cfg
 
-Week 1 Power Rankings 
+Week 3 Power Rankings 
 ...
 ```
 
