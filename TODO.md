@@ -23,6 +23,10 @@
 
 # Further Things to Develop
 
+### Playoffs
+- Figure out how to handle playoff weeks automatically
+- If week input is too large, maybe stop at last game of regular season for now
+
 ### Summary plot of rankings vs week
 - read the txt files
 - do both for power rankings and espn rankings

@@ -16,20 +16,44 @@ python3 setup.py install
 ```
 
 # Generate a Configuration File
-Download a local copy of the default configuration file. Once you have the file, fill in your league name, league id, year, and week (that you want to make rankings for). You can also adjust any of the settings that control the algorithms in the power rankings, or use the default values. To download a local copy of the configuration file, use the -dc (--download-config) option:
+Download a local copy of the default configuration file. Once you have the file, fill in your league name, league id, year, and week (that you want to make rankings for). You can also adjust any of the settings that control the algorithms in the power rankings, or use the default values. To download a local copy of the configuration file, use the -dc (--download-config) option. If you are in a private league, use the -p (--private-league) option to log into your ESPN account and retreive cookie information:
 ```bash
-power_ranker -dc
+power_ranker -dc 
+Creating copy of: /Path/To/power_ranker/docs/default_config.cfg
+To local destination: /Path/To/Current/Dir/MY_LOCAL_CONFIG.cfg
 ```
+or 
+```bash
+power_ranker -dc -p
+Creating copy of: /Path/To/power_ranker/docs/default_config.cfg
+To local destination: /Path/To/Current/Dir/MY_LOCAL_CONFIG.cfg
+Username: <Enter ESPN Login>
+Password: <Enter ESPN Password>
+```
+
 Use your favorite editor to open the local "MY_LOCAL_CONFIG.cfg" file and edit it.
 
 # Command line
-After you have added your league information, pass the configuration file as an argument with the -c (--config-file) option
+After you have added your league information, pass the configuration file as an argument with the -c (--config-file) option. If you haven't already, you can add the -p (--private-league) option to log into your ESPN account and retreive cookie information.
 ```bash
-power_ranker -c MY_LOCAL_CONFIG.cfg
+power_ranker -c MY_LOCAL_CONFIG.cfg 
+Using MY_LOCAL_CONFIG.cfg to generate power rankings
+
+Week 3 Power Rankings
+...
 ```
-Alternatively, pass the league name, league id, year, and week as command line arguments (-n --name, -l --leagueid, -y --year, -w --week) and all other default power ranking settings will be used
+Alternatively, pass the league id, year, and week as command line arguments (-l --leagueid, -y --year, -w --week) and all other default power ranking settings will be used. Pass the -p option if in a private league.
 ```bash
-power_ranker -n 'My League Name' -l 123456 -y 2017 -w 3
+power_ranker -l 123456 -y 2017 -w 3 
+Using user input:
+League ID: 123456
+Year: 2017
+Week: 3
+Creating copy of: /Path/To/power_ranker/docs/default_config.cfg
+To local destination: /Path/To/Current/Dir/MY_LOCAL_CONFIG.cfg
+
+Week 1 Power Rankings 
+...
 ```
 
 # Manipulate League objects in python interpreter

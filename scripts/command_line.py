@@ -7,9 +7,16 @@ from power_ranker.league import League
 from power_ranker.private import PrivateLeague
 
 #_______________________________
-def run_cl_rankings(config_file):
+def run_cl_rankings(config_file, private_league=False):
   '''Given local config file, run power rankings from CL'''
   print('Using {} to generate power rankings'.format(config_file))
+  if private_league:
+    # Overwrite cookies in config file with current login credentials
+    copy_config(data_file=config_file, 
+                local_file='%s_tmp'%config_file, 
+                private_league=private_league)
+    os.rename(os.path.join(os.getcwd(),'%s_tmp'%config_file), 
+              os.path.join(os.getcwd(), config_file))
   my_league = League(config_file)
   my_league.get_power_rankings()
   my_league.make_website()
@@ -22,15 +29,20 @@ def set_local_cfg(leagueid, year, week, private_league=False):
   ))
   src = ['league_id','year','week']
   rep = [leagueid, year, week]
-  copy_config(src, rep, private_league=private_league)
-  run_cl_rankings(local_cfg)
+  copy_config(src=src, rep=rep, private_league=private_league)
+  run_cl_rankings('MY_LOCAL_CONFIG.cfg')
 
 #_________________________________________________________
-def copy_config(src=None, rep=None, private_league=False):
+def copy_config(data_file=None, 
+                local_file=None, 
+                src=[], rep=[], private_league=False):
   '''Copy default configuration file locally for user to edit
     Optionally pass list of lines to replace in configuration file'''
   my_data = pkg_resources.resource_filename('power_ranker', "docs/default_config.cfg")
   my_local_data = os.path.join(os.getcwd(),'MY_LOCAL_CONFIG.cfg')
+  if data_file and local_file:
+    my_data = os.path.join(os.getcwd(), data_file)
+    my_local_data = os.path.join(os.getcwd(), local_file)
   print('Creating copy of: {}\nTo local destination: {}'.format(
     my_data, my_local_data
   ))
@@ -42,9 +54,9 @@ def copy_config(src=None, rep=None, private_league=False):
   with open(my_data,'r') as f_in, open(my_local_data,'w') as f_out:
     for line in f_in:
       for (s,r) in zip(src, rep):
-        if s in line and '#' not in line:
-          line = '%s = %s'%(s,r) 
-    f_out.write(line)
+        if line.startswith(s) and '#' not in line:
+          line = '%s = %s\n'%(s,r) 
+      f_out.write(line)
 
 #_______________________
 def get_private_cookies():
@@ -75,7 +87,7 @@ def main():
     copy_config(private_league=args.private)
   # Supplied config file to get rankings  
   elif args.config:
-    run_cl_rankings(args.config)
+    run_cl_rankings(args.config, private_league=args.private)
   # Supplied league information, use rest of default info
   elif args.leagueid and args.year and args.week:
     set_local_cfg(args.leagueid, args.year, args.week, private_league=args.private)
