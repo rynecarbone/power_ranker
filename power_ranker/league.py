@@ -13,7 +13,8 @@ from .utils import (fix_teamId,
                     calc_mov, 
                     calc_wins_losses, 
                     calc_sos, 
-                    calc_luck, 
+                    calc_luck,
+                    calc_cons,
                     calc_power, 
                     save_ranks, 
                     calc_tiers)
@@ -134,6 +135,11 @@ class League(object):
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     calc_luck(teams_sorted, self.week, awp_weight=awp_weight)
 
+  def _calc_cons(self, cons_weight=0.5):
+    '''Calculate the consistency index'''
+    teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
+    calc_cons(teams_sorted, self.week)
+
   def _calc_power(self, w_dom=0.21, w_lsq=0.18, w_col=0.18, w_awp=0.15, 
                  w_sos=0.10, w_luck=0.08, w_cons=0.05, w_strk=0.05):
     '''Calculates the final weighted power index'''
@@ -189,6 +195,8 @@ class League(object):
     self._calc_sos(rank_power = self.config['SOS'].getfloat('rank_power', 2.37) )
 	  # Calculate Luck index
     self._calc_luck(awp_weight = self.config['Luck'].getfloat('awp_weight', 0.5) )
+    # Calculate the Consistency index
+    self._calc_cons()
 	  # Calculate final power rankings
     self._calc_power(w_dom  = self.config['Power'].getfloat('w_dom', 0.21),
 	                   w_lsq  = self.config['Power'].getfloat('w_lsq', 0.18),

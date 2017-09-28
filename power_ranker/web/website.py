@@ -295,7 +295,7 @@ def copy_css_js_themes(year):
     local_file = os.path.join(os.getcwd(), 'output/%s/%s'%(year,f))
     shutil.copyfile(template, local_file)
   # Bootstrap dist and assets
-  boostrap_dirs = ['dist','assets']
+  boostrap_dirs = ['dist','assets','images']
   for b in boostrap_dirs:
     template_dir = pkg_resources.resource_filename('power_ranker','docs/template/%s'%b)
     local_dir = os.path.join(os.getcwd(), 'output/%s'%(b))

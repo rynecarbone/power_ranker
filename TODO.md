@@ -7,7 +7,6 @@
 ### Website generation
 - Maybe run rankings for previous week if not already saved somewhere ... ? Might be tricky if it rewrites over something you didn't want it to.
 - Should the code be a class or something?
-- Add flavicon
 
 ### Classes
 - Make class for rankings
@@ -19,7 +18,9 @@
 
 # Algorithms
 - Look at normalization funcitons -- standardize?
+- Make most metrics max at 1 ... how to scale evenly, maybe stretch from 0 to 1?
 - LSQ -- verify it is doing what I think it is
+
 
 # Further Things to Develop
 

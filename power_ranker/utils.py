@@ -141,6 +141,23 @@ def calc_luck(teams, week, awp_weight=0.5):
     luck_ind = o_avg_over_score*avg_score_weight + wpct_over_awp*awp_weight
     t.luck = luck_ind
 
+#___________________________________________
+def calc_cons(teams, week):
+  '''Calculate the consistency metric, based on your
+     minimum and maximum scores'''
+  for t in teams:
+    t_min = float(min(t.scores[:week]))
+    t_max = float(max(t.scores[:week]))
+    t_cons = t_min+t_max 
+    t.cons_rank = t_cons
+  # Find max consistency rank in league
+  cons_list = [x.cons_rank for x in teams]
+  max_cons = max(cons_list)
+  # Normalize to max 
+  for t in teams:
+    t.cons_rank = t.cons_rank*1./float(max_cons) 
+
+
 #__________________________________________________________________________
 def calc_power(teams, week, w_dom=0.21, w_lsq=0.18, w_col=0.18, w_awp=0.15, 
                w_sos=0.10, w_luck=0.08, w_cons=0.05, w_strk=0.05):
@@ -152,14 +169,10 @@ def calc_power(teams, week, w_dom=0.21, w_lsq=0.18, w_col=0.18, w_awp=0.15,
     awp  = float(t.awp)
     sos  = float(t.sos)
     luck = 1./float(t.luck)
+    cons = float(t.cons_rank) 
     strk = float(t.streak) * int(t.streak_sgn)
-    avg_score = sum(t.scores[:week]) / float(week)
-    t_min     = float(min(t.scores[:week]))
-    t_max     = float(max(t.scores[:week]))
-    min_max   = 0.5*t_min + 0.5*t_max
     # Only count streaks longer than one game
     strk = 0.25*strk if strk > 1. else 0.
-    cons = min_max/float(avg_score) # consistency metric
     # Weigh metrics according to the weights
     power = ( dom*w_dom + lsq*w_lsq + col*w_col + awp*w_awp + sos*w_sos +
               luck*w_luck + cons*w_cons + strk*w_strk )
