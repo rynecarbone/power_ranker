@@ -66,12 +66,12 @@ def make_game_log(t, week):
   loss = '<span class="text-danger">L</span>'
   game_log = ''
 
-  for w,o in enumerate(t.schedule[:week]):
+  for w,o in enumerate(t.stats.schedule[:week]):
     game_log += tr + td + '%s'%(w+1) + dt
     game_log += td + '%s'%(o.teamName) + dt
     game_log += td + '%s'%(o.owner.title()) + dt
-    game_log += td + '%.2f &mdash; %.2f'%(float(o.scores[w]),float(t.scores[w])) + dt
-    game_log += td + (win if float(t.scores[w]) > float(o.scores[w]) else loss ) + dt + rt
+    game_log += td + '%.2f &mdash; %.2f'%(float(o.stats.scores[w]),float(t.stats.scores[w])) + dt
+    game_log += td + (win if float(t.stats.scores[w]) > float(o.stats.scores[w]) else loss ) + dt + rt
 
   return game_log
 
@@ -85,19 +85,19 @@ def make_power_table(teams,week):
   rt = '</tr>'
   table = ''
   
-  for i,t in enumerate(sorted(teams, key=lambda x: x.power_rank, reverse=True)):
-    arrow = get_arrow(int(t.prev_rank), int(i+1))
+  for i,t in enumerate(sorted(teams, key=lambda x: x.rank.power, reverse=True)):
+    arrow = get_arrow(int(t.rank.prev), int(i+1))
     table += tr
     table += td + str(i+1) + dt
     table += td + t.owner.title() + arrow + dt
-    table += td + '%s-%s'%(t.wins,t.losses) + dt
-    table += td + "{0:.3f}".format(float(t.power_rank)) + dt
-    table += td + "{0:.3f}".format(float(t.lsq_rank)) + dt
-    table += td + "{0:.3f}".format(float(t.dom_rank)) + dt
-    table += td + "{0:.3f}".format(float(t.colley_rank)) + dt
-    table += td + "{0:.3f}".format(float(t.sos)) + dt
-    table += td + "{0:.3f}".format(float(t.luck)) + dt
-    table += td + str(t.tier) + dt
+    table += td + '%s-%s'%(t.stats.wins,t.stats.losses) + dt
+    table += td + "{0:.3f}".format(float(t.rank.power)) + dt
+    table += td + "{0:.3f}".format(float(t.rank.lsq)) + dt
+    table += td + "{0:.3f}".format(float(t.rank.dom)) + dt
+    table += td + "{0:.3f}".format(float(t.rank.col)) + dt
+    table += td + "{0:.3f}".format(float(t.rank.sos)) + dt
+    table += td + "{0:.3f}".format(float(t.rank.luck)) + dt
+    table += td + str(t.rank.tier) + dt
     table += rt
 
   return table
@@ -134,7 +134,7 @@ def make_teams_page(teams, year, week, league_name, settings):
   # Use if player has no ESPN image ...
   stock_url = 'http://www.suttonsilver.co.uk/wp-content/uploads/blog-stock-03.jpg'  
   # Make team page for each owner
-  for i,t in enumerate(sorted(teams, key=lambda x: x.power_rank, reverse=True)):
+  for i,t in enumerate(sorted(teams, key=lambda x: x.rank.power, reverse=True)):
     logo  = t.logoUrl if len(t.logoUrl) > 4 else stock_url
     first = t.owner.split()[0].title()
     last  = t.owner.split()[1].title()
@@ -163,13 +163,13 @@ def make_teams_page(teams, year, week, league_name, settings):
            logo,
            t.teamName,
            t.teamAbbrev,
-           '%s-%s'%(t.wins, t.losses),
-           '%d'%int(t.trans),
-           '%d'%int(t.trades),
-           '%s'%ordinal(t.waiver),
-           '%s <small>%s</small>'%(ordinal(t.rank_overall), get_arrow(int(t.prev_rank_overall), int(t.rank_overall))),
-           '%s <small>%s</small>'%(ordinal(int(i+1)), get_arrow(int(t.prev_rank), int(i+1))),
-           '%.3f <small>(%d-%d)</small>'%(t.awp,t.awins,t.alosses),
+           '%s-%s'%(t.stats.wins, t.stats.losses),
+           '%d'%int(t.stats.trans),
+           '%d'%int(t.stats.trades),
+           '%s'%ordinal(t.stats.waiver),
+           '%s <small>%s</small>'%(ordinal(t.rank.overall), get_arrow(int(t.rank.prev_overall), int(t.rank.overall))),
+           '%s <small>%s</small>'%(ordinal(int(i+1)), get_arrow(int(t.rank.prev), int(i+1))),
+           '%.3f <small>(%d-%d)</small>'%(t.stats.awp,t.stats.awins,t.stats.alosses),
            'radar_%s.png'%t.teamId,
            get_player_drop(teams, level='../')]
     with open(template,'r') as f_in, open(out_name,'w') as f_out:
@@ -177,40 +177,40 @@ def make_teams_page(teams, year, week, league_name, settings):
         for (s,r) in zip(src, rep):
           line = line.replace(s,r)
         if 'INSERT_TPF_PB' in line:
-          pf_sort = sorted(teams, key=lambda x: x.pointsFor, reverse=True)
+          pf_sort = sorted(teams, key=lambda x: x.stats.pointsFor, reverse=True)
           pf_rank = get_index(pf_sort, t.teamId)
           # want 1st to be 100%
-          line = make_progress_bar('Total Points For: %.2f'%float(t.pointsFor),
+          line = make_progress_bar('Total Points For: %.2f'%float(t.stats.pointsFor),
                                   100.*float( settings.n_teams+1-pf_rank )/float(settings.n_teams), 
                                   ordinal(int(pf_rank))  )
         elif 'INSERT_TPA_PB' in line:
-          pa_sort = sorted(teams, key=lambda x: x.pointsAgainst, reverse=True)
+          pa_sort = sorted(teams, key=lambda x: x.stats.pointsAgainst, reverse=True)
           pa_rank = get_index(pa_sort, t.teamId)
-          line = make_progress_bar('Total Points Against: %.2f'%float(t.pointsAgainst), 
+          line = make_progress_bar('Total Points Against: %.2f'%float(t.stats.pointsAgainst), 
                                   100.*float( settings.n_teams+1-pa_rank )/float(settings.n_teams),  
                                   ordinal(int(pa_rank))  )
         elif 'INSERT_HS_PB' in line:
-          hs_sort = sorted(teams, key=lambda x: max(x.scores[:week]), reverse=True)
+          hs_sort = sorted(teams, key=lambda x: max(x.stats.scores[:week]), reverse=True)
           hs_rank = get_index(hs_sort, t.teamId)
-          line = make_progress_bar('High Score: %.2f'%max(t.scores[:week]), 
+          line = make_progress_bar('High Score: %.2f'%max(t.stats.scores[:week]), 
                                   100.*float( settings.n_teams+1-hs_rank)/float(settings.n_teams), 
                                   ordinal(int(hs_rank))  )
         elif 'INSERT_LS_PB' in line:
-          ls_sort = sorted(teams, key=lambda x: min(x.scores[:week]), reverse=True)
+          ls_sort = sorted(teams, key=lambda x: min(x.stats.scores[:week]), reverse=True)
           ls_rank = get_index(ls_sort, t.teamId)
-          line = make_progress_bar('Low Score: %.2f'%min(t.scores[:week]), 
+          line = make_progress_bar('Low Score: %.2f'%min(t.stats.scores[:week]), 
                                   100.*float( settings.n_teams+1-ls_rank)/float(settings.n_teams), 
                                   ordinal(int(ls_rank))  )
         elif 'INSERT_FAAB_PB' in line:
           if settings.use_faab:
             max_FAAB = float(settings.max_faab)
             line = make_progress_bar('FAAB Remaining', 
-                                     float(max_FAAB-t.faab)*(100./max_FAAB), 
-                                     int(max_FAAB-t.faab), max_FAAB )
+                                     float(max_FAAB-t.stats.faab)*(100./max_FAAB), 
+                                     int(max_FAAB-t.stats.faab), max_FAAB )
           else:
             line = make_progress_bar('Waiver Priority',
-                                     100*float(settings.n_teams+1-t.waiver)/float(settings.n_teams),
-                                     ordinal(int(t.waiver)) )
+                                     100*float(settings.n_teams+1-t.stats.waiver)/float(settings.n_teams),
+                                     ordinal(int(t.stats.waiver)) )
         elif 'INSERTTABLEBODY' in line:
           line = make_game_log(t, week)
         # after checking all substitutions, finally write each line

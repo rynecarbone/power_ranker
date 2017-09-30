@@ -5,7 +5,6 @@ import numpy as np
 
 class LSQ(object):
   '''Calculates the LSQ based rankings'''
-
   def __init__(self, year, week, B_w=30., B_r=35., dS_max=35., beta_w=2.2, show=False):
     self.year   = year
     self.week   = week
@@ -14,7 +13,6 @@ class LSQ(object):
     self.dS_max = dS_max
     self.beta_w = beta_w
     self.show   = show
-
   def _calc_Rg(self, S_h, S_a):
     '''Returns R_g given home and away scores'''
     dS_ha = float(S_h - S_a)
@@ -23,19 +21,17 @@ class LSQ(object):
     p_m   = 1   if dS_ha > 0 else -1
     R_g   = p_m*self.B_w + dS_t + self.B_r*(dS_ha/S_w)
     return R_g
-
   def _calc_Ng_list(self, teams):
     '''Returns vector of games with home and away team id'''
     N_g = []
     for w in range(self.week):
       for t in teams:
-        if t.home_away[w] == 0:
-          opp = t.schedule[w]
-          score = t.scores[w]
-          opp_score = opp.scores[w]
+        if t.stats.home_away[w] == 0:
+          opp = t.stats.schedule[w]
+          score = t.stats.scores[w]
+          opp_score = opp.stats.scores[w]
           N_g.append([t.teamId, opp.teamId, score, opp_score])
     return N_g
-
   def _calc_sig_g(self, prev_rank, N_g):
     '''Returns Sigma_g for each game given previous iterations rankings'''
     alpha_w = (max(prev_rank) - min(prev_rank))/np.log(self.beta_w*self.beta_w)
@@ -82,7 +78,7 @@ class LSQ(object):
     if rank.success == False:
       print('WARNING:\t%s'%rank.message)
     for i,r in enumerate(rank.x):
-      teams[i].lsq_rank = r
+      teams[i].rank.lsq = r
     return rank.x
 
   def _plot_save_rank(self, rank_p, teams):
@@ -109,7 +105,7 @@ class LSQ(object):
     # Average last 70 elements to get final rank
     for i,t in enumerate(t_ranks):
       mean = sum(t[70:])/float(len(t[70:]))
-      teams[i].lsq_rank = np.tanh( mean/75.) # save the rank again (100 approximately is 1.)
+      teams[i].rank.lsq = np.tanh( mean/75.) # save the rank again (100 approximately is 1.)
 
   def get_ranks(self, teams):
     '''Main function to calculate and plot lsq ranking'''

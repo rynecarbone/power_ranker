@@ -1,5 +1,6 @@
 import requests
 import configparser
+from operator import attrgetter
 from .team import Team
 from .settings import Settings
 from .two_step_dom import TwoStepDom
@@ -9,9 +10,6 @@ from .exception import (PrivateLeagueException,
                         InvalidLeagueException,
                         UnknownLeagueException, )
 from .utils import (fix_teamId, 
-                    replace_opponents, 
-                    calc_mov, 
-                    calc_wins_losses, 
                     calc_sos, 
                     calc_luck,
                     calc_cons,
@@ -35,22 +33,22 @@ class League(object):
     self.ENDPOINT    = "http://games.espn.com/ffl/api/v2/"
     self.s2          = None 
     self.swid        = None
-    self._fetch_league()
+    self._scrape_league()
 
   def __repr__(self):
-    return 'League %s (%s), %s Season' % (self.settings.league_name, self.league_id, self.year)
-
-  def _fetch_league(self):
+    return 'League %s (%s), %s Season' % (self.settings.league_name, 
+                                          self.league_id, self.year)
+  def _scrape_league(self):
     '''Scrape league info from ESPN'''
     # Read config
     self._get_config()
     self._set_basic_info()
     params = { 'leagueId': self.league_id,
-							 'seasonId': self.year }
+               'seasonId': self.year }
     cookies = None
     if self.s2 and self.swid:
       cookies = { 'espn_s2': self.s2,
-									'SWID'   : self.swid }
+                  'SWID'   : self.swid }
     # Scrape info
     r = requests.get('%sleagueSettings' % (self.ENDPOINT, ), params=params, cookies=cookies)
     self.status = r.status_code
@@ -61,8 +59,8 @@ class League(object):
       raise InvalidLeagueException(data['error'][0]['message'])
     elif self.status != 200:
       raise UnknownLeagueException('Unknown %s Error' % self.status)
-    self._fetch_teams(data)
-    self._fetch_settings(data)
+    self._scrape_teams(data)
+    self._scrape_settings(data)
     self._update_for_week(self.week)
 
   def _get_config(self):
@@ -82,17 +80,17 @@ class League(object):
   def sorted_teams(self, sort_key='teamId', reverse=False):
     '''Returns league teams sorted by the string <sort_key> 
        and optionally in <reverse> order'''
-    return sorted(self.teams, key=lambda x: getattr(x,sort_key), reverse=reverse)
+    return sorted(self.teams, key=lambda x: attrgetter(sort_key)(x), reverse=reverse)
 
-  def _fetch_teams(self, data):
+  def _scrape_teams(self, data):
     '''Scrape info for each team from ESPN'''
-    teams = data['leaguesettings']['teams']
-    for team in teams:
-      self.teams.append(Team(teams[team]))
+    raw_teams = data['leaguesettings']['teams']
+    for t in raw_teams: self.teams.append(Team(raw_teams[t]))
     fix_teamId(self.sorted_teams(sort_key='teamId'))
-    replace_opponents(self.teams)
+    for t in self.teams: t.stats._replace_opponents(self.teams)
+    for t in self.teams: t.stats._calc_mov()
 
-  def _fetch_settings(self, data):
+  def _scrape_settings(self, data):
     '''Scrape league settings info'''
     self.settings = Settings(data)
 
@@ -102,10 +100,8 @@ class League(object):
     if week != self.week:
       print('Updating wins, losses, MOV for week %s (previous data was for week: %s)'%(week, self.week))
       self.week = week
-    # Calculate the MOV
-    calc_mov(self.teams)
     # Calculate wins and loses based on week
-    calc_wins_losses(self.week, self.teams)
+    for t in self.teams: t.stats._calc_wins_losses(t.teamId, self.week, self.teams)
 
   def _calc_dom(self, sq_weight=0.25, decay_penalty=0.5):
     '''Calculate the two step dominance rankings'''
@@ -149,29 +145,29 @@ class League(object):
 
   def _save_ranks(self, getPrev=True):
     '''Save the power rankings, optionally calculate change from previous week'''
-    teams_sorted = self.sorted_teams(sort_key='power_rank', reverse=True)
+    teams_sorted = self.sorted_teams(sort_key='rank.power', reverse=True)
     save_ranks(teams_sorted, self.year, self.week, getPrev=getPrev)
 
   def _calc_tiers(self, bw=0.09, order=4, show_plot=False):
     '''Calculates tiers based on the power rankings'''
-    teams_sorted = self.sorted_teams(sort_key='power_rank', reverse=True)
+    teams_sorted = self.sorted_teams(sort_key='rank.power', reverse=True)
     calc_tiers(teams_sorted, self.year, self.week, bw=bw, order=order, show=show_plot)
 
   def print_rankings(self):
     '''Print table of metrics and final power rankings'''
     print('\nWeek %d Power Rankings\n======================'%(self.week))
     # Sort teams based on power ranking
-    s_teams = self.sorted_teams(sort_key='power_rank', reverse=True)
+    s_teams = self.sorted_teams(sort_key='rank.power', reverse=True)
     print('%20s %7s  %8s  %3s  %3s  %3s  %3s  %5s  %5s  %6s  %5s'%('Owner','W-L',
           '# (Change)','Power','LSQ','Colley','2SD','SOS','AWP','Luck','Tier'))
     for i,t in enumerate(s_teams):
-      delta = int(t.prev_rank) - (i+1)
+      delta = int(t.rank.prev) - (i+1)
       pm = '-' if delta < 0 else '+' 
       ch = '%s%2d'%(pm, abs(delta)) if delta != 0 else delta 
-      rec = '%2d-%-2d'%(t.wins,t.losses)
+      rec = '%2d-%-2d'%(t.stats.wins,t.stats.losses)
       print('%20s %7s  %-8s  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %2d'%(t.owner, rec,
-            i+1 if ch == 0 else '%-3s(%3s)'%(i+1, ch), t.power_rank,t.lsq_rank,t.colley_rank,t.dom_rank,t.sos,t.awp,t.luck,
-            t.tier))
+            i+1 if ch == 0 else '%-3s(%3s)'%(i+1, ch), t.rank.power,t.rank.lsq,t.rank.col,
+            t.rank.dom,t.rank.sos,t.stats.awp,t.rank.luck,t.rank.tier))
 
   def get_power_rankings(self, week=-1):
     '''Get the power rankings for the specified week
@@ -224,8 +220,10 @@ class League(object):
     for t in self.teams:
       make_radar(t, self.year, self.week, Y_LOW, Y_HIGH)
     # Make welcome page power plot
-    make_power_plot(self.teams, self.year, self.week)
+    teams_sorted = self.sorted_teams(sort_key='rank.power', reverse=True)
+    make_power_plot(teams_sorted, self.year, self.week)
     # Generate html files for team and summary pages
     doSetup = self.config['Web'].getboolean('doSetup', True)
-    generate_web(self.teams, self.year, self.week, self.league_id, self.settings.league_name, self.settings, doSetup=doSetup)
+    generate_web(self.teams, self.year, self.week, self.league_id, 
+                 self.settings.league_name, self.settings, doSetup=doSetup)
 

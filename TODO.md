@@ -6,12 +6,9 @@
 
 ### Website generation
 - Maybe run rankings for previous week if not already saved somewhere ... ? Might be tricky if it rewrites over something you didn't want it to.
-- Should the code be a class or something?
 
 ### Classes
-- Make class for rankings
-- Make Web a class, inherit rankings etc from teams
-- Simplify team objects by inheriting other smaller classes to organize its member data
+- Make Web a class?
 
 ### Command line arguments
 - Attribute code for settings/private league

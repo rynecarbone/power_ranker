@@ -54,12 +54,12 @@ def make_radar( team, year, week, Y_LOW=[0,0,.4,50,-60,-5], Y_HIGH=[1,1,1.4,150,
   scale = [ 5./(Y_HIGH[x]-Y_LOW[x]) for x in range(6) ]
   offset = [ (0 - Y_LOW[x]) for x in range(6) ]
 
-  t_ranks = [ float(team.wins)/float(team.wins + team.losses),
-              float(team.awp),
-              float(team.sos),
-              float(team.pointsFor)/week,
-              sum(team.mov)/float(week),
-              int(team.streak) * int(team.streak_sgn) ]
+  t_ranks = [ float(team.stats.wins)/float(team.stats.wins + team.stats.losses),
+              float(team.stats.awp),
+              float(team.rank.sos),
+              float(team.stats.pointsFor)/week,
+              sum(team.stats.mov)/float(week),
+              int(team.stats.streak) * int(team.stats.streak_sgn) ]
   t_ranks_norm = [(t_ranks[x]+offset[x])*scale[x] for x in range(6) ]
 
   radar = Radar(fig, titles, labels)

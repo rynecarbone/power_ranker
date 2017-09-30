@@ -25,11 +25,11 @@ class Colley(object):
 	      # how many games team i played team j
 	      else:
 	        n_ij = 0
-	        for opponent in team.schedule[:self.week]:
+	        for opponent in team.stats.schedule[:self.week]:
 	          if int(opponent.teamId)-1 == j:
 	            n_ij += 1
 	        self.C[i][j] = -n_ij
-      self.b[i] = 1 + 0.5*( int(team.wins) - int(team.losses) ) # add weight? 
+      self.b[i] = 1 + 0.5*( int(team.stats.wins) - int(team.stats.losses) ) # add weight? 
 
   def _solve_matrix(self, teams):
     '''Solve the matrix equation'''
@@ -37,7 +37,7 @@ class Colley(object):
     if self.printM:
 	    self._print_colley(self.C, self.b, res)
     for i,team in enumerate(teams):
-	    team.colley_rank = res[i]
+	    team.rank.col = res[i]
   
   def _print_colley(self,C,b,res):
     '''Print the Colley matrix'''

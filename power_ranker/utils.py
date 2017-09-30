@@ -18,86 +18,9 @@ def fix_teamId(teams):
     t.teamId = i+1 
   # Replace opponent id in schedule
   for t in teams:
-    for w,o in enumerate(t.schedule):
+    for w,o in enumerate(t.stats.schedule):
       new_opp = new[old.index(o)] 
-      t.schedule[w] = new_opp 
-
-#___________________________
-def replace_opponents(teams):
-  '''Replace team id number with team object'''
-  for t in teams:
-    for week, matchup in enumerate(t.schedule):
-      for opponent in teams:
-        if matchup == opponent.teamId:
-          t.schedule[week] = opponent
-
-#__________________
-def calc_mov(teams):
-  '''Calculate the margin of victory'''
-  for t in teams:
-    for week, opponent in enumerate(t.schedule):
-      mov = t.scores[week] - opponent.scores[week]
-      t.mov.append(mov)
-
-#_________________________________
-def calc_wins_losses(week, teams):
-  '''Recalculates based on specified week:
-        points for
-        ponits against
-        wins
-        losses
-        streak
-        aggregate wins
-        aggregate losses
-        aggregate winning percentage'''
-  for t in teams:
-    aw_i   = 0. # aggregate wins
-    al_i   = 0. # aggregate losses
-    pf     = 0. # points for
-    pa     = 0. # points against
-    wins   = 0  
-    losses = 0
-    st     = 0  # streak
-    st_sgn = 1  # sign of streak
-    # Loop over weeks, retreive score and week's opponent
-    for w, (s,w_o) in enumerate(zip(t.scores[:week],t.schedule[:week]) ):
-      # points for, against, wins, losses, streak, sign
-      pf += s
-      pa += w_o.scores[w]
-      # Score more than opponent 
-      if s > w_o.scores[w]:
-        wins += 1
-        if st_sgn == -1:
-          st_sgn = 1
-          st = 1
-        else:
-          st += 1
-      # Score less than opponent
-      else:
-        losses += 1
-        if st_sgn == 1:
-          st_sgn = -1
-          st = 1
-        else:
-          st += 1
-      # aggregate wins/losses
-      for o in teams:
-        if o.teamId != t.teamId:
-          if s > o.scores[w]:
-            aw_i += 1
-          else:
-            al_i += 1
-    # Update aggregate win pct, agg. wins, agg. losses,
-    # points for, points against, wins, losses, streak 
-    t.awp            = float(aw_i)/(float(aw_i)+float(al_i))
-    t.awins          = aw_i
-    t.alosses        = al_i
-    t.pointsFor      = pf
-    t.pointsAgainst  = pa
-    t.wins           = wins
-    t.losses         = losses
-    t.streak         = st
-    t.streak_sgn     = st_sgn
+      t.stats.schedule[w] = new_opp 
 
 #_________________________________________
 def calc_sos(teams, week, rank_power=2.37):
@@ -106,15 +29,15 @@ def calc_sos(teams, week, rank_power=2.37):
   # Find avg of opponent rankings
   for t in teams:
     rank_i = 0
-    for w, o in enumerate(t.schedule[:week]):
-      rank_i += o.lsq_rank**rank_power
-    t.sos = rank_i/float(week)
+    for w, o in enumerate(t.stats.schedule[:week]):
+      rank_i += o.rank.lsq**rank_power
+    t.rank.sos = rank_i/float(week)
   # Find avg sos in league
-  sos_list = [x.sos for x in teams]
+  sos_list = [x.rank.sos for x in teams]
   avg_sos = sum(sos_list)/float(len(sos_list))
   # Normalize so average sos is 1
   for t in teams:
-    t.sos = np.sqrt(t.sos * 1./avg_sos)
+    t.rank.sos = np.sqrt(t.rank.sos * 1./avg_sos)
 
 #_________________________________________
 def calc_luck(teams, week, awp_weight=0.5):
@@ -126,64 +49,63 @@ def calc_luck(teams, week, awp_weight=0.5):
     # Calculate the ratio of opponents average score, 
     # over their week score
     o_avg_over_score = 0.
-    for w, o in enumerate(t.schedule[:week]):
-      o_avg = sum(o.scores[:week])/float(week)
-      ratio = o_avg/float(o.scores[w])
+    for w, o in enumerate(t.stats.schedule[:week]):
+      o_avg = sum(o.stats.scores[:week])/float(week)
+      ratio = o_avg/float(o.stats.scores[w])
       o_avg_over_score += ratio
     # Normalize to numer of weeks
     o_avg_over_score /= float(week)
     # Calculate ratio of your win pct to awg, pad
     # with 0.01 in num and denom to protect against shitty teams
     # with divide by 0
-    win_pct = float(t.wins)/float(t.wins+t.losses)
-    wpct_over_awp = (0.01 + float(win_pct) )/(0.01 + float(t.awp) )
+    win_pct = float(t.stats.wins)/float(t.stats.wins+t.stats.losses)
+    wpct_over_awp = (0.01 + float(win_pct) )/(0.01 + float(t.stats.awp) )
     # Calculate luck index
     luck_ind = o_avg_over_score*avg_score_weight + wpct_over_awp*awp_weight
-    t.luck = luck_ind
+    t.rank.luck = luck_ind
 
 #___________________________________________
 def calc_cons(teams, week):
   '''Calculate the consistency metric, based on your
      minimum and maximum scores'''
   for t in teams:
-    t_min = float(min(t.scores[:week]))
-    t_max = float(max(t.scores[:week]))
+    t_min = float(min(t.stats.scores[:week]))
+    t_max = float(max(t.stats.scores[:week]))
     t_cons = t_min+t_max 
-    t.cons_rank = t_cons
+    t.rank.cons = t_cons
   # Find max consistency rank in league
-  cons_list = [x.cons_rank for x in teams]
+  cons_list = [x.rank.cons for x in teams]
   max_cons = max(cons_list)
   # Normalize to max 
   for t in teams:
-    t.cons_rank = t.cons_rank*1./float(max_cons) 
-
+    t.rank.cons = t.rank.cons*1./float(max_cons) 
 
 #__________________________________________________________________________
 def calc_power(teams, week, w_dom=0.21, w_lsq=0.18, w_col=0.18, w_awp=0.15, 
                w_sos=0.10, w_luck=0.08, w_cons=0.05, w_strk=0.05):
   '''Calculates the final power rankings based on input metrics'''
   for t in teams:
-    dom  = float(t.dom_rank)
-    lsq  = float(t.lsq_rank)
-    col  = float(t.colley_rank)
-    awp  = float(t.awp)
-    sos  = float(t.sos)
-    luck = 1./float(t.luck)
-    cons = float(t.cons_rank) 
-    strk = float(t.streak) * int(t.streak_sgn)
+    dom  = float(t.rank.dom)
+    lsq  = float(t.rank.lsq)
+    col  = float(t.rank.col)
+    awp  = float(t.stats.awp)
+    sos  = float(t.rank.sos)
+    luck = 1./float(t.rank.luck)
+    cons = float(t.rank.cons) 
+    strk = float(t.stats.streak) * int(t.stats.streak_sgn)
     # Only count streaks longer than one game
     strk = 0.25*strk if strk > 1. else 0.
     # Weigh metrics according to the weights
     power = ( dom*w_dom + lsq*w_lsq + col*w_col + awp*w_awp + sos*w_sos +
               luck*w_luck + cons*w_cons + strk*w_strk )
     # Normalize with hyperbolic tangent #FIXME should this be configurable too?
-    t.power_rank = 100*np.tanh(power/0.5)
+    t.rank.power = 100*np.tanh(power/0.5)
 
 #________________________________________________________
 def calc_tiers(teams, year, week, bw=0.09, order=4, show=False):
   '''Calculate 3-5 tiers using Gaussian Kernal Density'''
   # Store rankings in list
-  ranks = [t.power_rank for t in teams]
+  ranks = [t.rank.power for t in teams]
   # Calculate the Kernal Density Estimation
   kde = gaussian_kde(ranks, bw_method=bw)
   # Make plot
@@ -206,10 +128,10 @@ def calc_tiers(teams, year, week, bw=0.09, order=4, show=False):
     if tier > len(s_min):
       tier += 0
     # if rank below current minima, create new tier
-    elif t.power_rank < s_min[tier-1]:
+    elif t.rank.power < s_min[tier-1]:
       if tier < 5: tier += 1
     # Save tier
-    t.tier =  tier
+    t.rank.tier =  tier
 
 #________________________________________
 def save_ranks(teams, year, week, getPrev=True):
@@ -224,14 +146,14 @@ def save_ranks(teams, year, week, getPrev=True):
     f_new.write('%s:%s\n'%(t.teamId, i+1))
   f_new.close()
   # Save ESPN overall rankings teamId:rank
-  teams_sorted_overall = sorted(teams, key=lambda x: (x.wins, x.pointsFor), reverse=True)
+  teams_sorted_overall = sorted(teams, key=lambda x: (x.stats.wins, x.stats.pointsFor), reverse=True)
   new_name = 'output/%s/week%s/ranks_overall.txt'%(year, week)
   os.makedirs(os.path.dirname(new_name), exist_ok=True)
   f_new = open(new_name, 'w')
   # Write to file (sorted by ESPN rankings)
   for i, t in enumerate(teams_sorted_overall):
     f_new.write('%s:%s\n'%(t.teamId, i+1))
-    t.rank_overall = i+1
+    t.rank.overall = i+1
   f_new.close()
   # Exit if not comparing to previous rankings
   if not getPrev: 
@@ -247,7 +169,7 @@ def save_ranks(teams, year, week, getPrev=True):
     # Sorted by this weeks power rankings
     for t in teams:
       if int(t.teamId) == int(t_id):
-        t.prev_rank = t_rk
+        t.rank.prev = t_rk
   f_old.close()
   # Get Previous overall rankings
   old_name = 'output/%s/week%s/ranks_overall.txt'%(year, week-1)
@@ -260,5 +182,5 @@ def save_ranks(teams, year, week, getPrev=True):
     # sorted by this week overall
     for t in teams_sorted_overall:
       if int(t.teamId) == int(t_id):
-        t.prev_rank_overall = t_rk
+        t.rank.prev_overall = t_rk
   f_old.close()

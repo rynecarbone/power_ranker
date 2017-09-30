@@ -15,7 +15,7 @@ class TwoStepDom(object):
     # Loop over the teams to find the wins versus other opponents
     for t_index, t in enumerate(teams):
       # Loop over each week, retreive MOV and opponent instance
-      for w, (mov, opponent) in enumerate(zip(t.mov[:self.week], t.schedule[:self.week])):
+      for w, (mov, opponent) in enumerate(zip(t.stats.mov[:self.week], t.stats.schedule[:self.week])):
         o_index = int(opponent.teamId) - 1
         # Positive MOV is a win, weight older games less using decay penalty
         # Oldest game will be weighted by (1.0 - decay penalty). Nominal value is 0.5
@@ -33,12 +33,12 @@ class TwoStepDom(object):
     tsd_matrix = m_sq + m_lin
     # Calc the dominance rank by summing rows
     for row, t in zip(tsd_matrix, teams):
-      t.dom_rank = sum(row)
+      t.rank.dom = sum(row)
     # Normalize avg dom rank to 1
-    dom_list = [x.dom_rank for x in teams]
+    dom_list = [x.rank.dom for x in teams]
     avg_dom = float(sum(dom_list))/len(dom_list)
     for t in teams:
-      t.dom_rank /= avg_dom
+      t.rank.dom /= avg_dom
 
   def get_ranks(self, teams):
     '''Get the rankings for each team from two step dominance matrix'''

@@ -20,14 +20,14 @@ def make_power_plot(teams, year, week):
   minx=200
   maxx=0
   # Save scores, tiers, names
-  for t in sorted(teams, key=lambda x: x.power_rank, reverse=True):
+  for t in teams:
     t_scores = []
-    for s in t.scores[:week]:
+    for s in t.stats.scores[:week]:
       t_scores.append(s)
     scores.append(t_scores)
     owners.append(t.owner.split()[0].title())
-    powers.append(float(t.power_rank))
-    colors.append(c[t.tier-1])
+    powers.append(float(t.rank.power))
+    colors.append(c[t.rank.tier-1])
     t_min = min(t_scores)
     t_max = max(t_scores)
     if t_min < minx:
