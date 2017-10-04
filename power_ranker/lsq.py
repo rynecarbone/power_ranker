@@ -16,13 +16,15 @@ class LSQ(object):
   def _calc_Rg(self, S_h, S_a):
     '''Returns R_g given home and away scores'''
     dS_ha = float(S_h - S_a)
-    dS_t  = self.dS_max * np.tanh(dS_ha/(2.*self.dS_max)) #FIXME should 2 be configurable?   
+    #dS_t  = self.dS_max * np.tanh(dS_ha/(2.*self.dS_max)) #FIXME should 2 be configurable?   
+    dS_t  = self.dS_max * np.tanh(dS_ha/(self.dS_max)) #FIXME should 2 be configurable?   
     S_w   = S_h if dS_ha > 0 else S_a
     p_m   = 1   if dS_ha > 0 else -1
     R_g   = p_m*self.B_w + dS_t + self.B_r*(dS_ha/S_w)
     return R_g
   def _calc_Ng_list(self, teams):
-    '''Returns vector of games with home and away team id'''
+    '''Returns vector of games with home team id [0], away team id[1]
+       home score [2] and away score [3]'''
     N_g = []
     for w in range(self.week):
       for t in teams:
@@ -47,8 +49,8 @@ class LSQ(object):
 
   def _rank_pass(self, teams, passN=0, prev_rank=[] ):
     '''Returns list of rankings  using linear chi2
-    for pass 0, set passN = 0, all weights are 1
-    for all others, set passN = n and send prev_rank '''
+    For pass 0, set passN = 0, all weights are 1
+    For all others, set passN = n and send prev_rank '''
     A   = []  # g x t array (games x teams)
     b   = []  # g list of game results R_g
     N_g = self._calc_Ng_list(teams)  # list of games with home/away ids
@@ -60,7 +62,7 @@ class LSQ(object):
     # Loop over games & home/away team ids
     for g, h_a in enumerate(N_g):
       row_g = [] # row for game g in A matrix
-      # loop over teams FIXME should it be squared here?
+      # loop over teams 
       for team in teams:
         if team.teamId == h_a[0]:
           r_tg = 1./sig_g[g] # home team

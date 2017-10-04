@@ -6,6 +6,8 @@
 
 ### Website generation
 - Maybe run rankings for previous week if not already saved somewhere ... ? Might be tricky if it rewrites over something you didn't want it to.
+- Add documentaiton for LSQ: http://www.phys.utk.edu/sorensen/ranking/Documentation/Sorensen_documentation_v1.pdf
+- Revise documentaiton about normalizing funcitons
 
 ### Classes
 - Make Web a class?

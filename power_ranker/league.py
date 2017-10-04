@@ -16,6 +16,7 @@ from .utils import (fix_teamId,
                     calc_power, 
                     save_ranks, 
                     calc_tiers)
+from .rank import norm_by_zscore, norm_rank, norm_by_max
 from .web.radar import make_radar
 from .web.website import generate_web
 from .web.power_plot import make_power_plot
@@ -108,36 +109,42 @@ class League(object):
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     dom = TwoStepDom( self.settings.n_teams, self.week, sq_weight=sq_weight, decay_penalty=decay_penalty)
     dom.get_ranks(teams_sorted)
+    norm_rank(teams_sorted, 'dom')
   
   def _calc_lsq(self, B_w=30., B_r=35., dS_max=35., beta_w=2.2, show_plot=False):
     '''Calculate rankings based on iterative lsq method''' 
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     lsq = LSQ(self.year, self.week, B_w=B_w, B_r=B_r, dS_max=dS_max, beta_w=beta_w, show=show_plot)
     lsq.get_ranks(teams_sorted)
+    norm_rank(teams_sorted, 'lsq')
     
   def _calc_colley(self, printMatrix=False):
     '''Calculates and assigns colley rankings for each team in the league'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     colley = Colley(self.week, self.settings.n_teams, printM=printMatrix)
     colley.get_ranks(teams_sorted)
+    norm_rank(teams_sorted, 'col')
 
   def _calc_sos(self, rank_power=2.37):
     '''Calculates the strength of schedule based on lsq rankings'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     calc_sos(teams_sorted, self.week, rank_power=rank_power)
+    norm_by_max(teams_sorted, 'sos')
 
   def _calc_luck(self, awp_weight=0.5):
     '''Calculates the luck index'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     calc_luck(teams_sorted, self.week, awp_weight=awp_weight)
+    norm_by_max(teams_sorted, 'luck')
 
   def _calc_cons(self, cons_weight=0.5):
     '''Calculate the consistency index'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     calc_cons(teams_sorted, self.week)
+    norm_by_max(teams_sorted, 'cons')
 
-  def _calc_power(self, w_dom=0.21, w_lsq=0.18, w_col=0.18, w_awp=0.15, 
-                 w_sos=0.10, w_luck=0.08, w_cons=0.05, w_strk=0.05):
+  def _calc_power(self, w_dom=0.18, w_lsq=0.18, w_col=0.18, w_awp=0.18, 
+                 w_sos=0.06, w_luck=0.06, w_cons=0.10, w_strk=0.06):
     '''Calculates the final weighted power index'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     calc_power(teams_sorted, self.week, w_dom=w_dom, w_lsq=w_lsq, w_col=w_col,
@@ -158,16 +165,16 @@ class League(object):
     print('\nWeek %d Power Rankings\n======================'%(self.week))
     # Sort teams based on power ranking
     s_teams = self.sorted_teams(sort_key='rank.power', reverse=True)
-    print('%20s %7s  %8s  %3s  %3s  %3s  %3s  %5s  %5s  %6s  %5s'%('Owner','W-L',
-          '# (Change)','Power','LSQ','Colley','2SD','SOS','AWP','Luck','Tier'))
+    print('%20s %7s  %8s  %3s  %3s  %3s  %3s  %5s  %5s  %6s  %6s %5s'%('Owner','W-L',
+          '# (Change)','Power','LSQ','Colley','2SD','AWP','SOS','Luck','Cons','Tier'))
     for i,t in enumerate(s_teams):
       delta = int(t.rank.prev) - (i+1)
       pm = '-' if delta < 0 else '+' 
       ch = '%s%2d'%(pm, abs(delta)) if delta != 0 else delta 
       rec = '%2d-%-2d'%(t.stats.wins,t.stats.losses)
-      print('%20s %7s  %-8s  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %2d'%(t.owner, rec,
+      print('%20s %7s  %-8s  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f %2d'%(t.owner, rec,
             i+1 if ch == 0 else '%-3s(%3s)'%(i+1, ch), t.rank.power,t.rank.lsq,t.rank.col,
-            t.rank.dom,t.rank.sos,t.stats.awp,t.rank.luck,t.rank.tier))
+            t.rank.dom,t.stats.awp,t.rank.sos,t.rank.luck,t.rank.cons,t.rank.tier))
 
   def get_power_rankings(self, week=-1):
     '''Get the power rankings for the specified week
@@ -194,14 +201,14 @@ class League(object):
     # Calculate the Consistency index
     self._calc_cons()
 	  # Calculate final power rankings
-    self._calc_power(w_dom  = self.config['Power'].getfloat('w_dom', 0.21),
+    self._calc_power(w_dom  = self.config['Power'].getfloat('w_dom', 0.18),
 	                   w_lsq  = self.config['Power'].getfloat('w_lsq', 0.18),
 	                   w_col  = self.config['Power'].getfloat('w_col', 0.18),
-	                   w_awp  = self.config['Power'].getfloat('w_awp', 0.15),
-	                   w_sos  = self.config['Power'].getfloat('w_sos', 0.10),
-	                   w_luck = self.config['Power'].getfloat('w_luck', 0.08),
-	                   w_cons = self.config['Power'].getfloat('w_cons', 0.05),
-	                   w_strk = self.config['Power'].getfloat('w_strk', 0.05) )
+	                   w_awp  = self.config['Power'].getfloat('w_awp', 0.18),
+	                   w_sos  = self.config['Power'].getfloat('w_sos', 0.06),
+	                   w_luck = self.config['Power'].getfloat('w_luck', 0.06),
+	                   w_cons = self.config['Power'].getfloat('w_cons', 0.10),
+	                   w_strk = self.config['Power'].getfloat('w_strk', 0.06) )
 	  # Calculate change from previous week
     self._save_ranks(getPrev = self.config['Tiers'].getboolean('getPrev', False))
 	  # Get Tiers

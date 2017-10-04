@@ -32,12 +32,6 @@ def calc_sos(teams, week, rank_power=2.37):
     for w, o in enumerate(t.stats.schedule[:week]):
       rank_i += o.rank.lsq**rank_power
     t.rank.sos = rank_i/float(week)
-  # Find avg sos in league
-  sos_list = [x.rank.sos for x in teams]
-  avg_sos = sum(sos_list)/float(len(sos_list))
-  # Normalize so average sos is 1
-  for t in teams:
-    t.rank.sos = np.sqrt(t.rank.sos * 1./avg_sos)
 
 #_________________________________________
 def calc_luck(teams, week, awp_weight=0.5):
@@ -62,27 +56,22 @@ def calc_luck(teams, week, awp_weight=0.5):
     wpct_over_awp = (0.01 + float(win_pct) )/(0.01 + float(t.stats.awp) )
     # Calculate luck index
     luck_ind = o_avg_over_score*avg_score_weight + wpct_over_awp*awp_weight
-    t.rank.luck = luck_ind
+    t.rank.luck = 1./luck_ind
 
 #___________________________________________
 def calc_cons(teams, week):
   '''Calculate the consistency metric, based on your
-     minimum and maximum scores'''
+     avg, minimum, and maximum scores'''
   for t in teams:
     t_min = float(min(t.stats.scores[:week]))
     t_max = float(max(t.stats.scores[:week]))
-    t_cons = t_min+t_max 
+    t_avg = float(sum(t.stats.scores[:week]))/float(week)
+    t_cons = t_min+t_max+t_avg 
     t.rank.cons = t_cons
-  # Find max consistency rank in league
-  cons_list = [x.rank.cons for x in teams]
-  max_cons = max(cons_list)
-  # Normalize to max 
-  for t in teams:
-    t.rank.cons = t.rank.cons*1./float(max_cons) 
 
 #__________________________________________________________________________
-def calc_power(teams, week, w_dom=0.21, w_lsq=0.18, w_col=0.18, w_awp=0.15, 
-               w_sos=0.10, w_luck=0.08, w_cons=0.05, w_strk=0.05):
+def calc_power(teams, week, w_dom=0.18, w_lsq=0.18, w_col=0.18, w_awp=0.18, 
+               w_sos=0.06, w_luck=0.06, w_cons=0.10, w_strk=0.06):
   '''Calculates the final power rankings based on input metrics'''
   for t in teams:
     dom  = float(t.rank.dom)
@@ -90,7 +79,7 @@ def calc_power(teams, week, w_dom=0.21, w_lsq=0.18, w_col=0.18, w_awp=0.15,
     col  = float(t.rank.col)
     awp  = float(t.stats.awp)
     sos  = float(t.rank.sos)
-    luck = 1./float(t.rank.luck)
+    luck = float(t.rank.luck)
     cons = float(t.rank.cons) 
     strk = float(t.stats.streak) * int(t.stats.streak_sgn)
     # Only count streaks longer than one game
