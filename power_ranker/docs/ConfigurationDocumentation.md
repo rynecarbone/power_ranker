@@ -41,6 +41,29 @@ settings to achieve the appropriate number of tiers.
 Parameter |What value to enter
 ----------|------------------
 `getPrev`| Set to `False` for the first week of the rankings (no previous rankings to retreive). For all subsequent weeks, set to `True`. Be sure that you run the rankings in the same directory as previous weeks, the tool will search the previous output for the saved rankings. This setting is important to make the arrows on the website reflect accurate movement in the power rankings
-`bw`| This is the bandwidth of the tier algorithm. A smaller value will create finer differentiation between power scores to define the tiers. If the value is too small, every team will be it's own tier. You can see the distribution and output of the tiers by locating the file `output/<year>/weekX/tiers.png`.
+`bw`| This is the bandwidth of the tier algorithm. A smaller value will create finer differentiation between power scores to define the tiers. If the value is too small, every team will be it's own tier. You can see the distribution and output of the tiers by locating the file `output/<year>/week<X>/tiers.png`.
 `order`|This roughly determines the minimum separation between tiers. If you find lowering the bandwidth doesn't create enough tiers, try lowering the order, and vice versa
 `show_plot`|This will display the tiers plot when running the power rankings via command line
+
+## Web
+The first time you run the rankings, make sure this is enabled. The code will copy the bootstrap html, css, and javascript template files. Without these 
+files the website will look like it is from 1990, and many of the features will not be enabled.
+
+Parameter|What value to enter
+---------|------------------
+doSetup|Set to `True` for the first time you run the rankings, and `False` for subsequent power ranings if you don't want to re-download all the supporting template files
+
+## Power
+If you find the power rankings don't reflect the actual state of your league, you can adjust the weights of the metrics used in the 
+overall power ranking. For total rankings with a maximum score near 100, make sure the weights sum to 1.0
+
+Parameter|What value to enter
+---------|-------------------
+`w_dom`|Weight of the dominance matrix ranking (default 0.18)
+`w_lsq`|Weight of the predictive, iterative least squares metric (default 0.18)
+`w_col`|Weight of the colley matrix ranking (default 0.18)
+`w_awp`|Weight of the aggregate winning percentage (default 0.18)
+`w_cons`|Weight of the consistency metric (default 0.10)
+`w_sos`|Weight of the strength of schedule metric (default 0.06)
+`w_luck`|Weight of the luck ranking boost (default 0.06)
+`w_strk`|Weight of the winning streak boost (default 0.06)
