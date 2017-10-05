@@ -22,4 +22,4 @@ are now handled in one application with the help of a configuration file
 - Created command line scripts for downloading configuration file locally, and running rankings
 - Created package to install with pip
 - Description of LSQ metric
-
+- Added a favicon to website
