@@ -80,7 +80,7 @@ Parameter|What value to enter
 
 ## LSQ
 The method of the iterative least squares ranking is discussed in the "about" section of the website. Refer to the documentaiton there for a more detailed
-explanation ofthe algorithm. In general, the sum of `B_w`, `B_r`, and `dS_max` should be 100. To see the output of the rankings, navigate to `output/<year>/week<X>/lsq_iter_rankings.png`
+explanation ofthe algorithm. In general, the sum of `B_w`, `B_r`, and `dS_max` should be 100. To see the output of the rankings, navigate to `output/<year>/week<X>/lsq_iter_rankings.png`. If you alter the default parameters, or you find the LSQ rankings don't seem to make sense, check this output to make sure the rankings are converging.
 
 Parameter|What value to enter
 ---------|-------------------

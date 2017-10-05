@@ -1,4 +1,5 @@
-# README
+# Power Ranker
+A tool for scraping fantasy football stats from ESPN leagues, creating power rankings, and publishing the rankings to a website
 
 # Check out package
 
