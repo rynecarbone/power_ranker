@@ -1,5 +1,4 @@
 # README
-Finish instructions on how to run
 
 # Check out package
 
@@ -55,6 +54,13 @@ To local destination: /Path/To/Current/Dir/MY_LOCAL_CONFIG.cfg
 Week 3 Power Rankings 
 ...
 ```
+After you run the rankings, a template website will be generated in a directory titled "output/". Follow the instructions on how to [Publish Power Rankings to a Website](https://github.com/rynecarbone/power_ranker/blob/master/power_ranker/docs/PublishingWebsite.md) if you want to share the output with your league. To add your own summary to the week's power rankings, edit the file "output/2017/power.html". Find the commented out section:
+```html
+	<!--- <p>FIXME! FIXME!
+					 Add your own commentary here! New write-up here!
+					 Or just leave the rankings</p> -->
+```
+Remove the `<!--` and `-->` comment delimeters, and edit the text inside the paragraph markers (`<p>`, `</p>`).
 
 # Manipulate League objects in python interpreter
 After you have added your league information to the local configuration file, you can open python3 interpreter:
