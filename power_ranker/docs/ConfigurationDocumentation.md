@@ -88,3 +88,34 @@ Parameter|What value to enter
 `B_r`|Score ratio coefficient (default 35.0)
 `dS_max`|Maximum value for the truncated score differential (default 35.0)
 `show_plot`|Set to `True` to display the output of the iterative LSQ algorithm when rankings are run via command line
+
+## Colley
+The colley matrix algorithm doesn't have any configurable parameters, but you can print the output of the matrix if you want:
+
+Parameter|What value to enter
+---------|-------------------
+`printMatrix`|Set to `True` if you want to see the raw output of the Colley matrix
+
+## SOS
+The strength of schedule uses a ratio of your opponent's ranking, to the average ranking, raised to a power. A higher power creates more separation in SOS, weighting games
+against highly ranked opponents more.
+
+Parameter|What value to enter
+---------|-------------------
+`rank_power`|A typical value is more than 2, but less than 3 (default 2.37)
+
+
+## Luck
+In the luck index, the aggregate winning percentage, and opponents performance metrics have weights.
+
+Parameter|What value to enter
+---------|-------------------
+`awp_weight`|How much to weight the aggregate winning percentage in the luck metric (default 0.5). The opponents performance metric will be weighted by `1-awp_weight`
+
+## Radar
+On the team pages, the radar plots can be configured so that the ranges are more applicable for the scoring of your league. There are six metrics on the ranking plot, you can edit the minimum and maximum values. Separate values with a comma.
+
+Parameter|What value to enter
+---------|-------------------
+`Y_LOW`|Minimum y-values. The order is win percentage, aggregate winning percentage, strength of schedule, points per game, margin of victory, and winning streak. (Default:0, 0, 0, 50, -60, -5 )
+`Y_HIGH`|Maximum y-values. The order is the same as for `Y_LOW`. (Default: 1, 1, 1, 150, 40, 5)
