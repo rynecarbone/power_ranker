@@ -51,7 +51,7 @@ files the website will look like it is from 1990, and many of the features will 
 
 Parameter|What value to enter
 ---------|------------------
-doSetup|Set to `True` for the first time you run the rankings, and `False` for subsequent power ranings if you don't want to re-download all the supporting template files
+`doSetup`|Set to `True` for the first time you run the rankings, and `False` for subsequent power ranings if you don't want to re-download all the supporting template files
 
 ## Power
 If you find the power rankings don't reflect the actual state of your league, you can adjust the weights of the metrics used in the 
@@ -67,3 +67,24 @@ Parameter|What value to enter
 `w_sos`|Weight of the strength of schedule metric (default 0.06)
 `w_luck`|Weight of the luck ranking boost (default 0.06)
 `w_strk`|Weight of the winning streak boost (default 0.06)
+
+## 2SD
+You can alter the weights of the linear and square matrices in the two step dominance ranking, as well
+as the decay penalty used to devalue games that happened early in the season.
+
+Parameter|What value to enter
+---------|-------------------
+`sq_weight`|Weight of the square matrix (default 0.25). The linear matrix will be weighted by `1-sq_weight`. In general, the linear matrix should have a larger weight than the square matrix.
+`decay_penalty`|A smaller value will weigh older games more closely to recent games (default 0.5)
+
+
+## LSQ
+The method of the iterative least squares ranking is discussed in the "about" section of the website. Refer to the documentaiton there for a more detailed
+explanation ofthe algorithm. In general, the sum of `B_w`, `B_r`, and `dS_max` should be 100. To see the output of the rankings, navigate to `output/<year>/week<X>/lsq_iter_rankings.png`
+
+Parameter|What value to enter
+---------|-------------------
+`B_w`|Bonus for winning (default 30.0)
+`B_r`|Score ratio coefficient (default 35.0)
+`dS_max`|Maximum value for the truncated score differential (default 35.0)
+`show_plot`|Set to `True` to display the output of the iterative LSQ algorithm when rankings are run via command line
