@@ -109,21 +109,24 @@ class League(object):
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     dom = TwoStepDom( self.settings.n_teams, self.week, sq_weight=sq_weight, decay_penalty=decay_penalty)
     dom.get_ranks(teams_sorted)
-    norm_rank(teams_sorted, 'dom')
+    #norm_rank(teams_sorted, 'dom')
+    norm_by_max(teams_sorted, 'dom')
   
   def _calc_lsq(self, B_w=30., B_r=35., dS_max=35., beta_w=2.2, show_plot=False):
     '''Calculate rankings based on iterative lsq method''' 
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     lsq = LSQ(self.year, self.week, B_w=B_w, B_r=B_r, dS_max=dS_max, beta_w=beta_w, show=show_plot)
     lsq.get_ranks(teams_sorted)
-    norm_rank(teams_sorted, 'lsq')
+    #norm_rank(teams_sorted, 'lsq')
+    norm_by_max(teams_sorted, 'lsq')
     
   def _calc_colley(self, printMatrix=False):
     '''Calculates and assigns colley rankings for each team in the league'''
     teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
     colley = Colley(self.week, self.settings.n_teams, printM=printMatrix)
     colley.get_ranks(teams_sorted)
-    norm_rank(teams_sorted, 'col')
+    #norm_rank(teams_sorted, 'col')
+    norm_by_max(teams_sorted, 'col')
 
   def _calc_sos(self, rank_power=2.37):
     '''Calculates the strength of schedule based on lsq rankings'''

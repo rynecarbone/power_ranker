@@ -8,7 +8,7 @@
 - Maybe run rankings for previous week if not already saved somewhere ... ? Might be tricky if it rewrites over something you didn't want it to.
 - Add documentaiton for LSQ: http://www.phys.utk.edu/sorensen/ranking/Documentation/Sorensen_documentation_v1.pdf
 - Revise documentaiton about normalizing funcitons
-- Fix bounds on radar plot (SOS max at 1.0)
+- Luck is bonus for bad luck
 
 ### Classes
 - Make Web a class?
