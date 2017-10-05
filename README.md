@@ -1,3 +1,5 @@
+ [![version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/rynecarbone/power_ranker/blob/master/CHANGELOG.md) [![PyPI version](https://badge.fury.io/py/power_ranker.svg)](https://badge.fury.io/py/power_ranker)
+
 # Power Ranker
 A tool for scraping fantasy football stats from ESPN leagues, creating power rankings, and publishing the rankings to a website
 
