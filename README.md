@@ -15,7 +15,9 @@ python3 setup.py install
 ```
 
 # Generate a Configuration File
-Download a local copy of the default configuration file. Once you have the file, fill in your league name, league id, year, and week (that you want to make rankings for). You can also adjust any of the settings that control the algorithms in the power rankings, or use the default values. To download a local copy of the configuration file, use the -dc (--download-config) option. If you are in a private league, use the -p (--private-league) option to log into your ESPN account and retreive cookie information:
+Download a local copy of the default configuration file. Once you have the file, fill in your league name, league id, year, and week (that you want to make rankings for). You can also adjust any of the settings that control the algorithms in the power rankings, or use the default values. For detailed instructions, see the [Configuration File Documentation](https://github.com/rynecarbone/power_ranker/blob/master/power_ranker/docs/ConfigurationDocumentation.md)
+
+To download a local copy of the configuration file, use the -dc (--download-config) option. If you are in a private league, use the -p (--private-league) option to log into your ESPN account and retreive cookie information:
 ```bash
 power_ranker -dc 
 Creating copy of: /Path/To/power_ranker/docs/default_config.cfg
