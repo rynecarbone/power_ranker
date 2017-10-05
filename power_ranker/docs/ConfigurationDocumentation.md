@@ -31,9 +31,16 @@ choose to enter the cookies manually, you have to also add `=` after the paramet
 Parameter |What value to enter
 ----------|-------------------
 `s2` | Copy the value of the `espn_s2` cookie
-`swid` | Copy the value of `SWID` cookie, including braces
+`swid`| Copy the value of `SWID` cookie, including braces
 
 
 ## Tiers
+Each week the distribution of power rankings may differ. The website is set up to expect around 5 tiers, so you may need to fine tune these 
+settings to achieve the appropriate number of tiers. 
 
-Discuss tiers
+Parameter |What value to enter
+----------|------------------
+`getPrev`| Set to `False` for the first week of the rankings (no previous rankings to retreive). For all subsequent weeks, set to `True`. Be sure that you run the rankings in the same directory as previous weeks, the tool will search the previous output for the saved rankings. This setting is important to make the arrows on the website reflect accurate movement in the power rankings
+`bw`| This is the bandwidth of the tier algorithm. A smaller value will create finer differentiation between power scores to define the tiers. If the value is too small, every team will be it's own tier. You can see the distribution and output of the tiers by locating the file `output/<year>/weekX/tiers.png`.
+`order`|This roughly determines the minimum separation between tiers. If you find lowering the bandwidth doesn't create enough tiers, try lowering the order, and vice versa
+`show_plot`|This will display the tiers plot when running the power rankings via command line
