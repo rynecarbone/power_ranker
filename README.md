@@ -77,13 +77,13 @@ After you have a league object, you can get power rankings for a different week 
 >>> my_league.get_power_rankings(3)
 ```
 ## Generate website after calculating rankings
-After you have calculated the power rankings for the desired week, you can create a directory with html files to showcase the rankings online. For an example of how to use Github Pages to host the website, see the documentation in  "docs/PublishingWebsite.md"
+After you have calculated the power rankings for the desired week, you can create a directory with html 
+files to showcase the rankings online. For an example of how to use Github Pages to host the website, 
+see the documentation on [Publish Power Rankings to a Website](https://github.com/rynecarbone/power_ranker/blob/master/power_ranker/docs/PublishingWebsite.md)
 ```python3
 >>> my_league.make_website()
 ```
 
 # Credit
-The code to extract league info from hidden ESPN API is largely thanks to
-Rich Barton's espnff package (used v 1.0.0 2016-10-04):
-https://github.com/rbarton65/espnff
-League class and team class templates also inspired from that code. 
+The code to extract league info from hidden ESPN API, including retreiving league settings and accessing private league data, is largely thanks to
+Rich Barton's espnff package: https://github.com/rbarton65/espnff.
