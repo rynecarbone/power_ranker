@@ -62,7 +62,7 @@ over to your GitHub pages repository.
 
 - Create a subdirectory to organize your site structure:
 ```bash
-cd usernamegithub.io
+cd username.github.io
 mkdir ff
 ```
 
