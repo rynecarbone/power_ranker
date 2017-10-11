@@ -89,6 +89,13 @@ see the documentation on [Publish Power Rankings to a Website](https://github.co
 >>> my_league.make_website()
 ```
 
+# Example Output
+After successfully running the code, the generated website files should appear like the examples below:
+- Power rankings [welcome page](https://rynecarbone.github.io/ff/2017/example/)
+- Power rankings [table](https://rynecarbone.github.io/ff/2017/example/power.html) with metric breakdown
+- [About page](https://rynecarbone.github.io/ff/2017/example/about/), explaining briefly the algorithms
+- [Team summary pages](https://rynecarbone.github.io/ff/2017/example/Marie_Curie/) showing stats for each team, with a game log
+
 # Credit
 The code to extract league info from hidden ESPN API, including retreiving league settings and accessing private league data, is largely thanks to
 Rich Barton's espnff package: https://github.com/rbarton65/espnff.
