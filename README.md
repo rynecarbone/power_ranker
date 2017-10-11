@@ -67,28 +67,6 @@ After you run the rankings, a template website will be generated in a directory 
 ```
 Remove the `<!--` and `-->` comment delimeters, and edit the text inside the paragraph markers (`<p>`, `</p>`).
 
-# Manipulate League objects in python interpreter
-After you have added your league information to the local configuration file, you can open python3 interpreter:
-```python3
-python3
->>> from power_ranker.league import League
->>> my_config = 'MY_LOCAL_CONFIG.cfg'
->>> my_league = League(my_config)
->>> my_league.get_power_rankings()
-```
-## Recalculate power rankings for a separate week
-After you have a league object, you can get power rankings for a different week as well (example, for week 3):
-```python3
->>> my_league.get_power_rankings(3)
-```
-## Generate website after calculating rankings
-After you have calculated the power rankings for the desired week, you can create a directory with html 
-files to showcase the rankings online. For an example of how to use Github Pages to host the website, 
-see the documentation on [Publish Power Rankings to a Website](https://github.com/rynecarbone/power_ranker/blob/master/power_ranker/docs/PublishingWebsite.md)
-```python3
->>> my_league.make_website()
-```
-
 # Example Output
 After successfully running the code, the generated website files should appear like the examples below:
 - Power rankings [welcome page](https://rynecarbone.github.io/ff/2017/example/)
