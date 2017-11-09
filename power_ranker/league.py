@@ -20,6 +20,7 @@ from .rank import norm_by_zscore, norm_rank, norm_by_max
 from .web.radar import make_radar
 from .web.website import generate_web
 from .web.power_plot import make_power_plot
+from .playoff_odds import calc_playoffs 
 
 #___________________
 class League(object):
@@ -220,6 +221,11 @@ class League(object):
 	                   show_plot = self.config['Tiers'].getboolean('show_plot', False) )
 	  # Print Sorted team
     self.print_rankings()
+    # Calc the playoff odds
+    do_playoffs = self.config['Playoffs'].getboolean('doPlayoffs',False)
+    if do_playoffs:
+      calc_playoffs(self.teams, self.year, self.week, self.settings, 
+                    n_sims = self.config['Playoffs'].getint('num_simulations', 200000))
 
   def make_website(self):
     '''Creates website based on current power rankings.

@@ -53,6 +53,15 @@ Parameter|What value to enter
 ---------|------------------
 `doSetup`|Set to `True` for the first time you run the rankings, and `False` for subsequent power ranings if you don't want to re-download all the supporting template files
 
+## Playoffs
+If you wish to simulate the rest of the season, you can enable this flag. It will fit each teams season score distribution to a gaussian, in order to predict scores in future games. The remaining games in the season are simulated for the specified number of simulations, and the fraction of simulated seasons each team makes the playoffs determines the odds of that team making the playoffs. This feature assumes, at the moment, that your league seeds playoffs by division winners, and then the remaining spots are wildcards. The tie breakers are assumed to be regular season records, and then total points for.
+
+Parameter|What value to enter
+---------|-------------------
+`doPlayoffs`|Set to `True` if you wish to run the playoff odds simulation. Warning, it may take a very long time if you try early in the season
+`num_simulations`|Set to the desired number of simulated seasons. A suggested starting point is between 100k-200k
+
+
 ## Power
 If you find the power rankings don't reflect the actual state of your league, you can adjust the weights of the metrics used in the 
 overall power ranking. For total rankings with a maximum score near 100, make sure the weights sum to 1.0

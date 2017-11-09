@@ -9,6 +9,7 @@ class Settings(object):
         #    #pprint.pprint('%20s: %s'%(k,data['leaguesettings'][k]))
         #  else:
         #    pprint.pprint(k)
+        self.divisions           = data['leaguesettings']['divisions'] # dict with keys: 'size', 'name', 'divisionId'
         self.reg_season_count    = data['leaguesettings']['finalRegularSeasonMatchupPeriodId']
         self.undroppable_list    = data['leaguesettings']['usingUndroppableList']
         self.veto_votes_required = data['leaguesettings']['vetoVotesRequired']
