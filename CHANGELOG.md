@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.1.0](https://github.com/rynecarbone/power_ranker/tree/1.1.0) - 2017-11-08
+### Added
+- Playoff simulations: fit each teams weekly score distribution with a gaussian. Use the gaussian fit to predict the scores for that team for the rest of the regular season games. Simulate the rest of the season for many iterations
+- Cleaned up some of the documentation
+
 ## [1.0.0](https://github.com/rynecarbone/power_ranker/tree/1.0.0) - 2017-10-05
 ### Changed
 - Multiple instances of application for separate league settings 
