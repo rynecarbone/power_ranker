@@ -54,7 +54,7 @@ Parameter|What value to enter
 `doSetup`|Set to `True` for the first time you run the rankings, and `False` for subsequent power ranings if you don't want to re-download all the supporting template files
 
 ## Playoffs
-If you wish to simulate the rest of the season, you can enable this flag. It will fit each teams season score distribution to a gaussian, in order to predict scores in future games. The remaining games in the season are simulated for the specified number of simulations, and the fraction of simulated seasons each team makes the playoffs determines the odds of that team making the playoffs. This feature assumes, at the moment, that your league seeds playoffs by division winners, and then the remaining spots are wildcards. The tie breakers are assumed to be regular season records, and then total points for.
+If you wish to simulate the rest of the season, you can enable this flag. It will fit each teams season score distribution to a gaussian, in order to predict scores in future games. The remaining games in the season are simulated for the specified number of simulations, and the fraction of simulated seasons each team makes the playoffs determines the odds of that team making the playoffs. This feature assumes, at the moment, that your league seeds playoffs by division winners, and then the remaining spots are wildcards. The tie breakers are assumed to be regular season records, and then total points for. After running the simulations, an output image is stored in `output/<year>/<week>/playoff_odds.png` where you can verify the odds have leveled out.
 
 Parameter|What value to enter
 ---------|-------------------

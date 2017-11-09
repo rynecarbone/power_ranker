@@ -1,4 +1,4 @@
-[![version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/rynecarbone/power-ranker/blob/master/CHANGELOG.md) [![PyPI version](https://badge.fury.io/py/power-ranker.svg)](https://badge.fury.io/py/power-ranker)
+[![version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/rynecarbone/power-ranker/blob/master/CHANGELOG.md) [![PyPI version](https://badge.fury.io/py/power-ranker.svg)](https://badge.fury.io/py/power-ranker)
 
 # Power Ranker
 A tool for scraping fantasy football stats from ESPN leagues, creating power rankings, and publishing the rankings to a website
@@ -66,6 +66,9 @@ After you run the rankings, a template website will be generated in a directory 
          Or just leave the rankings</p> -->
 ```
 Remove the `<!--` and `-->` comment delimeters, and edit the text inside the paragraph markers (`<p>`, `</p>`).
+
+# Playoff Odds
+See [Configuration File Documentation](https://github.com/rynecarbone/power_ranker/blob/master/power_ranker/docs/ConfigurationDocumentation.md) for detailed instructins on how to alter the configuration file to run simulated playoff odds. You can control the number of simulations to run, where each simulation uses this season's scores to predict the outcomes of the remaining games. The fraction of simulations in which a team makes the playoffs determines that team's estimated odds of making the playoffs.
 
 # Example Output
 After successfully running the code, the generated website files should appear like the examples below:

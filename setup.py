@@ -2,7 +2,7 @@ from setuptools import setup
 from setuptools import find_packages
 
 setup(name='power_ranker',
-      version='1.0.0',
+      version='1.1.0',
       description='Fantasy football power rankings for public ESPN leagues',
       long_description=open('README.md').read(),
       url='http://github.com/rynecarbone/power_ranker',
