@@ -69,8 +69,8 @@ def simulate_season(teams, year, divisions, spots, week, reg_season, n_sims=1):
       progress(season+1, n_sims, suffix='Complete')
       # Add data point to plot later
       for i, (curr_d, curr_w) in enumerate(zip(div_tot, wc_tot)):
-        div_tot_plot[i,int(season/1000)] = curr_d /(season+1)
-        wc_tot_plot[i,int(season/1000)] = curr_w /(season+1)
+        div_tot_plot[i,int(season/1000)] = curr_d /float(season)
+        wc_tot_plot[i,int(season/1000)] = curr_w /float(season)
     # keep track of wins during this simulation,
     # need to erase number of wins added after each season sim   
     temp_wins = [0]*len(teams) 
@@ -117,11 +117,15 @@ def simulate_season(teams, year, divisions, spots, week, reg_season, n_sims=1):
   # Order teams by numer of times they win division / wild card for plotting
   d_order = sorted(range(len(div_tot)), key=lambda k: div_tot[k], reverse=True)
   w_order = sorted(range(len(wc_tot)), key=lambda k: wc_tot[k], reverse=True)
-
+  
   # Plot the pct as funciton of simulation
   plt.figure(1)
   ax1 = plt.subplot(211, xlabel='Simulation / 1000', ylabel='Win Division %', yscale='logit')
   xx = [x for x in range(int(n_sims/1000.))]
+  # If someone is 100% in all simulations
+  if np.amax(div_tot_plot) == 1.0:
+    ax1.set_yscale("log", nonposy='clip')
+    ax1.set_ylim([0.0,1.01]) 
   # Make division subplot
   for i in d_order:
     owner = ''
@@ -136,6 +140,10 @@ def simulate_season(teams, year, divisions, spots, week, reg_season, n_sims=1):
   ax1.legend(bbox_to_anchor=(1.01,1), loc=2, ncol=1,borderaxespad=0., prop={'size':10})
   # Make WC subplot
   ax2 = plt.subplot(212, xlabel = 'Simulation / 1000', ylabel='Wild Card %', yscale='logit')
+  # If someone is 100% in all simulations
+  if np.amax(wc_tot_plot) == 1.0:
+    ax2.set_yscale("log", nonposy='clip')
+    ax2.set_ylim([0.0,1.01]) 
   for i in w_order:
     owner = ''
     for t in teams:
