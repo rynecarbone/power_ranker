@@ -6,16 +6,19 @@ from scipy.stats import norm
 
 #_____________________________
 def calc_playoffs(teams, year, week, settings, n_sims=1000000):
-  '''Calculates playoff odds for each team
-     Change reg_season to number of weeks
-     Change spots to number of spots available (1 division)'''
+  '''Calculates playoff odds for each team using MC simulations
   
-  # See how many teams left:
+     teams: has scores and schedule for each team in league
+     settings: has settings for regular season, playoffs, divisions
+     week: current week, needed to simulate rest of season
+  '''
+  
+  # Retreive settings to determine playoff format
   reg_season = settings.reg_season_count
   spots      = settings.playoff_team_count
   divisions  = len(settings.divisions)
 
-  # Sort teams by current standings
+  # Sort teams by current standings (wins, total points tie breaker)
   sorted_teams = sorted(teams, key=lambda x: (x.stats.wins, sum(x.stats.scores[:week])), reverse= True )
   for t in sorted_teams:
     # fit gaus to team scores
@@ -29,6 +32,8 @@ def calc_playoffs(teams, year, week, settings, n_sims=1000000):
   div, wc = simulate_season(teams, year, divisions, spots, week, reg_season, n_sims=n_sims)
 
   print('\nRest of Season Projections\n{:>20s}\tExp. Wins\tDiv. Winner (%)\tWild Card (%)\tMake Playoffs (%)'.format('Team'))
+  # Expected wins, division winner, wild card spots 
+  # stored as list indexed by teamId
   for t in sorted_teams: 
     ew      = exp_wins[t.teamId - 1]
     d_wins  = 100.*div[t.teamId -1]
@@ -39,26 +44,38 @@ def calc_playoffs(teams, year, week, settings, n_sims=1000000):
 
 #____________________________________________________________________
 def simulate_season(teams, year, divisions, spots, week, reg_season, n_sims=1):
-  '''Simulate the rest of the season'''
+  '''MC simulation of the rest of the season
+    
+     divisions: number of divisions (one spot per div. winner)
+     spots: total playoff spots (non-div winners are wild cards)
+     week: current week
+     reg_season: length of the regular season
+  '''
   
   # Keep track of how many times each team is division winner or wc
+  # index each list by unique teamId
   div_tot = [0]*len(teams)
   wc_tot  = [0]*len(teams)
-
+  # Keep track of percent of playoff appearances as
+  # function of number of MC simulations 
   div_tot_plot = np.zeros((len(teams),int(n_sims/1000)))
   wc_tot_plot = np.zeros((len(teams),int(n_sims/1000)))
+  
   print('\nSimulating Rest of Season...')
   # Loop over number of simulated seasons
   for season in range(n_sims):
+    # Keep track of progress every 1k simulations
     if (season+1) % 1000 == 0:
       progress(season+1, n_sims, suffix='Complete')
+      # Add data point to plot later
       for i, (curr_d, curr_w) in enumerate(zip(div_tot, wc_tot)):
         div_tot_plot[i,int(season/1000)] = curr_d /(season+1)
         wc_tot_plot[i,int(season/1000)] = curr_w /(season+1)
-    # need to erase number of wins added for each season sim   
-    temp_wins = [0]*len(teams) # store num of wins by team Id
+    # keep track of wins during this simulation,
+    # need to erase number of wins added after each season sim   
+    temp_wins = [0]*len(teams) 
     
-    # Loop over remaining games
+    # Loop over remaining games in simulated season
     for i in range(reg_season-week):
       w = i + week # simulated week number
       simulated = [] # keep track of which games have already been simulated
@@ -85,16 +102,19 @@ def simulate_season(teams, year, divisions, spots, week, reg_season, n_sims=1):
                 op.stats.wins += 1
                 temp_wins[op.teamId-1] += 1
     
-    # Finished simulating the season
+    # Finished simulating the season, get division winners 
+    # and wildcard spots for this simulation
     div, wc = calc_standings(teams, divisions, spots, reg_season, reg_season, print_current=False)
+    # Update list of total season each team wins division/wildcard
     div_tot[:] = [sum(x) for x in zip(div_tot, div)]
     wc_tot[:]  = [sum(x) for x in zip(wc_tot, wc)]
-    # Reset wins for remaining part of season
+    # Reset wins for rest of simulations for unplayed games
     for t in  sorted(teams, key=lambda x: (x.stats.wins, sum(x.stats.scores[:])), reverse= True ):
       t.stats.wins -= temp_wins[t.teamId-1]
   # Normalize by number of simulations
   div_tot[:] = [ x/float(n_sims) for x in div_tot]
   wc_tot[:]  = [ x/float(n_sims) for x in wc_tot]
+  # Order teams by numer of times they win division / wild card for plotting
   d_order = sorted(range(len(div_tot)), key=lambda k: div_tot[k], reverse=True)
   w_order = sorted(range(len(wc_tot)), key=lambda k: wc_tot[k], reverse=True)
 
@@ -136,10 +156,12 @@ def simulate_season(teams, year, divisions, spots, week, reg_season, n_sims=1):
 #_____________________________________________________________________
 def calc_standings(teams, divisions, spots, week, reg_season, print_current=False):
   '''Calculate the current playoff standings
+     
      Division winners make it, then enough playoff teams to fill wildcard
      Return two lists, of length number of teams
        index for (teamId-1) = 1 if team in list:
-       ex: division_winners = [0,1,0,...,0,1,0,...,0]'''
+       ex: division_winners = [0,1,0,...,0,1,0,...,0]
+  '''
   
   division_winners = []
   wildcards        = []
