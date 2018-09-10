@@ -15,7 +15,7 @@ class Radar(object):
     self.ax.set_thetagrids(self.angles, labels=titles, fontsize=12, weight='bold')
     for ax in self.axes[1:]:
       ax.patch.set_visible(False)
-      ax.grid("off")
+      ax.grid(False)
       ax.xaxis.set_visible(False)
     for ax, angle, label in zip(self.axes, self.angles, labels):
       ax.set_rgrids(range(1, 6), angle=angle, labels=label)
