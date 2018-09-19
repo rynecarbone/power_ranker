@@ -14,8 +14,5 @@ output/
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
 
-# For including config files
-/MANIFEST.in
-
 # My own shortcuts and debugging
 my_help.txt

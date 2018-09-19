@@ -1,0 +1,5 @@
+recursive-include power_ranker/docs *
+include README.md
+include TODO.md
+include LICENSE
+include CHANGELOG.md

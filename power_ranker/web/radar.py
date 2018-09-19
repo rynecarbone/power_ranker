@@ -18,7 +18,7 @@ class Radar(object):
       ax.grid(False)
       ax.xaxis.set_visible(False)
     for ax, angle, label in zip(self.axes, self.angles, labels):
-      ax.set_rgrids(range(1, 6), angle=angle, labels=label)
+      ax.set_rgrids(range(1, 6), angle=angle, labels=['{:.1f}'.format(l) for l in label])
       ax.spines["polar"].set_visible(False)
       ax.set_ylim(0, 5)
   

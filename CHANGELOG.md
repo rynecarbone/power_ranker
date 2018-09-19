@@ -2,6 +2,9 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+- Fixed matplotlib deprecation warning
+- Fixed missing Manifest.in file for github repository clone
+- Fixed matplotlib bug on radar plot where rounding created weird decimal labels
 
 ## [1.1.0](https://github.com/rynecarbone/power_ranker/tree/1.1.0) - 2017-11-08
 ### Added
