@@ -1,7 +1,7 @@
 [![version](https://img.shields.io/badge/version-1.1.1-blue.svg)](https://github.com/rynecarbone/power_ranker/blob/master/CHANGELOG.md) [![PyPI version](https://badge.fury.io/py/power-ranker.svg)](https://badge.fury.io/py/power-ranker)
 
 # Power Ranker
-A tool for scraping fantasy football stats from ESPN leagues, creating power rankings, and publishing the rankings to a website.
+A tool for scraping fantasy football stats from ESPN leagues, creating power rankings, collecting previous season standings, and publishing to a website.
 
 # Check out package
 
@@ -70,12 +70,17 @@ Remove the `<!--` and `-->` comment delimeters, and edit the text inside the par
 # Playoff Odds
 See [Configuration File Documentation](https://github.com/rynecarbone/power_ranker/blob/master/power_ranker/docs/ConfigurationDocumentation.md) for detailed instructins on how to alter the configuration file to run simulated playoff odds. You can control the number of simulations to run, where each simulation uses this season's scores to predict the outcomes of the remaining games. The fraction of simulations in which a team makes the playoffs determines that team's estimated odds of making the playoffs.
 
+# League History
+The first time you run power_ranker, make sure 'do_Setup' option is set to True. It will search for and scrape stats for
+all previous seasons. A League history page will be created displaying the standings and stats from each of these past seasons. 
+
 # Example Output
 After successfully running the code, the generated website files should appear like the examples below:
 - Power rankings [welcome page](https://rynecarbone.github.io/ff/2017/example/)
 - Power rankings [table](https://rynecarbone.github.io/ff/2017/example/power.html) with metric breakdown
 - [About page](https://rynecarbone.github.io/ff/2017/example/about/), explaining briefly the algorithms
 - [Team summary pages](https://rynecarbone.github.io/ff/2017/example/Marie_Curie/) showing stats for each team, with a game log
+- [History page](https://rynecarbone.github.io/ff/2017/example/history/index.html) showing the final season standings for all previous seasons
 
 # Credit
 The code to extract league info from hidden ESPN API, including retreiving league settings and accessing private league data, is largely thanks to

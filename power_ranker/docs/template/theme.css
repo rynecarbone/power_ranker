@@ -63,6 +63,19 @@ body {
 .row-tier5 {
 	background-color: rgba(227, 169, 157, 1);
 }
+.row-first{
+	background-color: rgba(241, 196, 15, 0.2);
+}
+.row-second{
+	background-color: rgba(149, 165, 166, 0.2);
+}
+.row-third{
+	background-color: rgba(150, 90, 56, 0.2);
+}
+.row-last{
+	background-color: rgba(211,16,16, 0.1);
+}
+
 span.footnote:before {
   counter-increment: footnotecounter;
 	content: counter(footnotecounter);

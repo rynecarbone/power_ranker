@@ -3,6 +3,7 @@ import shutil
 from distutils.dir_util import copy_tree
 import pkg_resources
 import numpy as np
+from ..history import make_history_table
 
 #__________________
 def get_arrow(i, j):
@@ -270,6 +271,24 @@ def make_welcome_page(year, week, league_id, league_name):
   # Write from template to local, with replacements
   output_with_replace(template, local_file, src, rep)
 
+
+#________________________________
+def make_history_page(teams, year, league_name):
+  '''Produces league history page'''
+  local_file = 'output/%s/history/index.html'%year
+  template   = pkg_resources.resource_filename('power_ranker','docs/template/history.html')
+  option_menu, history_tables = make_history_table(year)
+  src = ['INSERT_LEAGUE_NAME',
+         'PLAYER_DROPDOWN',
+         'INSERT_OPTIONS',
+         'INSERT_HISTORY_TABLES']
+  rep = [league_name,
+         get_player_drop(teams, level='../'),
+         option_menu,
+         history_tables]
+  # Write from template to local, with replacements
+  output_with_replace(template, local_file, src, rep)
+
   
 #_______________________________________________
 def output_with_replace(template, local_file, src, rep):
@@ -289,7 +308,7 @@ def copy_css_js_themes(year):
   '''Copy the css and js files to make website 
      look like it is not from 1990'''
   # Specific themes
-  in_files = ['about.js','theme.js','theme.css','cover.css']
+  in_files = ['about.js','theme.js','history.js','theme.css','cover.css']
   for f in in_files:
     template = pkg_resources.resource_filename('power_ranker','docs/template/%s'%f)
     local_file = os.path.join(os.getcwd(), 'output/%s/%s'%(year,f))
@@ -314,3 +333,4 @@ def generate_web(teams, year, week, league_id, league_name, settings, doSetup=Tr
   if doSetup:
     copy_css_js_themes(year)
     make_about_page(teams, year, league_name)
+    make_history_page(teams, year, league_name)

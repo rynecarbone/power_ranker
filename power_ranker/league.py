@@ -21,6 +21,7 @@ from .web.radar import make_radar
 from .web.website import generate_web
 from .web.power_plot import make_power_plot
 from .playoff_odds import calc_playoffs 
+from .history import scrape_history
 
 #___________________
 class League(object):
@@ -47,12 +48,12 @@ class League(object):
     self._set_basic_info()
     params = { 'leagueId': self.league_id,
                'seasonId': self.year }
-    cookies = None
+    self.cookies = None
     if self.s2 and self.swid:
-      cookies = { 'espn_s2': self.s2,
+      self.cookies = { 'espn_s2': self.s2,
                   'SWID'   : self.swid }
     # Scrape info
-    r = requests.get('%sleagueSettings' % (self.ENDPOINT, ), params=params, cookies=cookies)
+    r = requests.get('%sleagueSettings' % (self.ENDPOINT, ), params=params, cookies=self.cookies)
     self.status = r.status_code
     data = r.json()
     if self.status == 401:
@@ -238,8 +239,11 @@ class League(object):
     # Make welcome page power plot
     teams_sorted = self.sorted_teams(sort_key='rank.power', reverse=True)
     make_power_plot(teams_sorted, self.year, self.week)
-    # Generate html files for team and summary pages
     doSetup = self.config['Web'].getboolean('doSetup', True)
+    # Scrape history
+    if doSetup:
+      scrape_history(league_id=self.league_id, year=self.year, cookies=self.cookies)
+    # Generate html files for team and summary pages
     generate_web(self.teams, self.year, self.week, self.league_id, 
                  self.settings.league_name, self.settings, doSetup=doSetup)
 
