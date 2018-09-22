@@ -64,7 +64,7 @@ def make_radar( team, year, week, Y_LOW=[0,0,.4,50,-60,-5], Y_HIGH=[1,1,1.4,150,
               float(team.stats.awp),
               float(team.rank.sos),
               float(team.stats.pointsFor)/week,
-              sum(team.stats.mov)/float(week),
+              sum(team.stats.mov[:week])/float(week),
               int(team.stats.streak) * int(team.stats.streak_sgn) ]
   # Normalize to the axes scales
   t_ranks_norm = [(t_ranks[x]+offset[x])*scale[x] for x in range(6) ]
