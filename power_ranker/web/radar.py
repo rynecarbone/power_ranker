@@ -1,6 +1,16 @@
-import os
+#!/usr/bin/env python
+
+"""Create Radar plots to summarize team statistics"""
+
+import logging
+from pathlib import Path
 import numpy as np
 from matplotlib import pylab as pl
+
+__author__ = 'Ryne Carbone'
+
+logger = logging.getLogger(__name__)
+
 
 class Radar(object):
   '''Creates a radar plot for each team '''
@@ -9,7 +19,7 @@ class Radar(object):
       rect = [0.05, 0.05, 0.85, 0.85]
     self.n = len(titles)
     self.angles = [a if a <=360. else a - 360. for a in np.arange(90, 90+360, 360.0/self.n)]
-    self.axes = [fig.add_axes(rect, projection="polar", label="axes%d" % i) 
+    self.axes = [fig.add_axes(rect, projection="polar", label='axes{:d}'.format(i)) 
                      for i in range(self.n)]
     self.ax = self.axes[0]
     self.ax.set_thetagrids(self.angles, labels=titles, fontsize=12, weight='bold')
@@ -36,13 +46,9 @@ def make_radar( team, year, week, Y_LOW=[0,0,.4,50,-60,-5], Y_HIGH=[1,1,1.4,150,
      y_low is list of minimum y values (win pct, awp, sos, ppg, mov, streak)
      y_high is list of maximum y values (win pct, awp, sos, ppg, mov, streak)'''
   fig = pl.figure(figsize=(6,6))
-
-  titles = [ 'Win Pct',
-             'AWP',
-             'SOS',
-             'PPG',
-             'MOV',
-             'Streak' ]
+  titles = [ 'Win Pct','AWP','SOS',
+             'PPG','MOV','Streak' ]
+  # Recalculate low y-values at second tick
   Y_LOW2 = [ 0.2*(h-l)+l for (l,h) in zip(Y_LOW, Y_HIGH) ]
   labels = [ np.linspace(Y_LOW2[0], Y_HIGH[0], num=5),
              np.linspace(Y_LOW2[1], Y_HIGH[1], num=5),
@@ -53,19 +59,23 @@ def make_radar( team, year, week, Y_LOW=[0,0,.4,50,-60,-5], Y_HIGH=[1,1,1.4,150,
             ]
   scale = [ 5./(Y_HIGH[x]-Y_LOW[x]) for x in range(6) ]
   offset = [ (0 - Y_LOW[x]) for x in range(6) ]
-
+  # Calculate stats to plot for team
   t_ranks = [ float(team.stats.wins)/float(team.stats.wins + team.stats.losses),
               float(team.stats.awp),
               float(team.rank.sos),
               float(team.stats.pointsFor)/week,
               sum(team.stats.mov)/float(week),
               int(team.stats.streak) * int(team.stats.streak_sgn) ]
+  # Normalize to the axes scales
   t_ranks_norm = [(t_ranks[x]+offset[x])*scale[x] for x in range(6) ]
-
+  # Create the plot
   radar = Radar(fig, titles, labels)
   radar.plot( t_ranks_norm , "-", lw=2, color="g", alpha=0.4,label=team.teamName)
-
+  # Save the output
   fig.set_size_inches(6,6, forward=True)
-  out_dir = 'output/%s/week%s/radar_plots/radar_%s.png'%(year, week,team.teamId)
-  os.makedirs(os.path.dirname(out_dir), exist_ok=True)
-  fig.savefig(out_dir)
+  out_dir = Path(f'output/{year}/week{week}/radar_plots')
+  out_dir.mkdir(parents=True, exist_ok=True)
+  out_file = out_dir / f'radar_{team.teamId}.png'
+  fig.savefig(out_file)
+  logger.debug(f'Saved radar plot for team {team.teamId} to local destination {out_file.resolve()}')  
+

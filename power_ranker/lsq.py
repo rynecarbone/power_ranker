@@ -1,7 +1,21 @@
-import os
+#!/usr/bin/env python
+
+"""
+Calculate the ratings matrix using linear win-difference ratio
+
+Notation is used from the following paper:
+   http://www.phys.utk.edu/sorensen/ranking/Documentation/Sorensen_documentation_v1.pdf
+"""
+
+from pathlib import Path
+import logging
 from scipy.optimize import lsq_linear
 from matplotlib import pylab as pl
 import numpy as np
+
+__author__ = 'Ryne Carbone'
+
+logger = logging.getLogger(__name__)
 
 class LSQ(object):
   '''Calculates the LSQ based rankings'''
@@ -100,10 +114,12 @@ class LSQ(object):
     if self.show == True:
       pl.show()
     # make dir if it doesn't exist already
-    out_name = 'output/%s/week%s/lsq_iter_rankings.png'%(self.year, self.week)
-    os.makedirs(os.path.dirname(out_name), exist_ok=True)
+    out_dir = Path(f'output/{self.year}/week{self.week}')
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_name = out_dir / 'lsq_iter_rankings.png'
     fig.savefig(out_name)
     pl.close()
+    logger.info(f'Saved LSQ rankings plot to local file: {out_name.resolve()}')
     # Average last 70 elements to get final rank
     for i,t in enumerate(t_ranks):
       mean = sum(t[70:])/float(len(t[70:]))
@@ -111,6 +127,7 @@ class LSQ(object):
 
   def get_ranks(self, teams):
     '''Main function to calculate and plot lsq ranking'''
+    logger.debug('Calculating ranks using LSQ method with 100 iterations')
     rank_p = [] # List of rankings for each pass
     # Pass 0 has weight = 1
     rank_p.append( self._rank_pass(teams, passN=0) )

@@ -1,4 +1,14 @@
+#!/usr/bin/env python
+
+"""Calculate two step dominance matrix"""
+
+import logging
 import numpy as np
+
+__author__ = 'Ryne Carbone'
+
+logger = logging.getLogger(__name__)
+
 
 class TwoStepDom(object):
   '''Class to get the two step dominance matrix and rankings'''
@@ -12,6 +22,7 @@ class TwoStepDom(object):
 
   def _calc_win_matrix(self, teams):
     '''Calculate the win matrix for specified week'''
+    logger.debug('Calculating the win matrix for 2SD')
     # Loop over the teams to find the wins versus other opponents
     for t_index, t in enumerate(teams):
       # Loop over each week, retreive MOV and opponent instance
@@ -24,6 +35,7 @@ class TwoStepDom(object):
 
   def _calc_two_step_dom(self, teams):
     '''Calculate the two step dominance matrix and save rankings'''
+    logger.debug('Calculating the two step dominance matrix and solving for rankings')
     # Square the win matirx, and apply weight
     m_sq = np.linalg.matrix_power(self.win_matrix, 2)
     m_sq *= self.w_sq

@@ -1,12 +1,17 @@
-import os
-import requests
-import json
-import pandas as pd
-from bs4 import BeautifulSoup
-from pathlib import Path
+#!/usr/bin/env python
 
-BASE = 'http://games.espn.com/ffl'
-ENDPOINT = 'tools/finalstandings'
+"""Collect and store fantasy fooball league hisory"""
+
+import logging
+import pandas as pd
+from pathlib import Path
+from .utils import fetch_page
+
+__author__ = 'Ryne Carbone'
+
+logger = logging.getLogger(__name__)
+
+ENDPOINT = 'http://games.espn.com/ffl/tools/finalstandings'
 
 def scrape_history(league_id, year, cookies=None):
   """Scrape from the ESPN league history page
@@ -17,36 +22,46 @@ def scrape_history(league_id, year, cookies=None):
   :param cookies: s2/swid dict for accessing private league
   :return: None, saves output to csv
   """
-  # Scrape most recent league history page if it exists 
-  params = {'leagueId': league_id,
-            'seasonId': year-1}
-  r = requests.get(f'{BASE}/{ENDPOINT}', params=params, cookies=cookies)
-  s = BeautifulSoup(r.content, features='lxml')
-  # Get list of years for league
-  past_seasons = s.find_all(id='seasonHistoryMenu')
+  logger.info('Beginning league history scraping,')
+  try:
+    history_page = fetch_page(league_id=league_id, year=(year-1), 
+                              cookies=cookies, ENDPOINT=ENDPOINT)
+  except Exception as e:
+    logger.exception(e)
+    raise(e)
+  # Get list of previous years for league
+  past_seasons = history_page.find_all(id='seasonHistoryMenu')
+  # If unable to find list, save empty data frame
   if not past_seasons:
-    print('No league history found!')
-    # FIXME need to write empty csv
+    logger.warning('No league history found!')
+    # Write an empty csv
+    save_dataframe_to_csv(df=pd.DataFrame(), 
+                          dest=f'output/{year}/history', 
+                          f_name='history.csv')
     return
+  # Parse history menu opions to get previous years
   years = sorted([
     opt.get('value')
     for opt in past_seasons[0].find_all('option')
-    if int(opt.get('value')) != year
+    if int(opt.get('value')) < year
   ])
-  # Loop over each year, grab the table 
-  print(f'\nRetrieving league history for years: {years}\n')
   df_season_list = []
+  logger.info(f'Retrieving league history for years: {years} (league_id: {league_id})')
+  # Loop over each year, grab the table 
   for y in years:
-    params['seasonId'] = y
-    r = requests.get(f'{BASE}/{ENDPOINT}', params=params, cookies=cookies)
-    s = BeautifulSoup(r.content, features='lxml')
-    # Get standings for this year
-    # Returns a list, second item is table we want, use row index 1 as header
-    df = pd.read_html(r.content, header=1)
-    if len(df) < 1:
-      print(f'\nNo league history found for year: {y}')
+    try:
+      history_page = fetch_page(league_id=league_id, year=y, 
+                                cookies=cookies, ENDPOINT=ENDPOINT, use_soup=False)
+    except Exception as e:
+      logger.exception(e)
+      raise(e)
+    # Get standings for this year, use row_index=1 as header
+    html_table_list = pd.read_html(history_page, header=1)
+    # Returns a list, second item is table we want 
+    if len(html_table_list) < 1:
+      logger.warning(f'No league history found for year: {y} (league_id: {league_id})')
       continue
-    df = df[1] 
+    df = html_table_list[1] 
     # Drop column 3 (NaN), row 0 (overall header)
     df = df.drop(columns='Unnamed: 3')
     # Add column for year
@@ -54,11 +69,26 @@ def scrape_history(league_id, year, cookies=None):
     df_season_list.append(df)
   final_df = pd.concat(df_season_list, axis=0, ignore_index=True)
   # Save to output csv 
-  out_dir = Path(f'output/{year}/history')
-  out_dir.mkdir(parents=True, exist_ok=True)
-  out_file = out_dir / 'history.csv'
-  final_df.to_csv(out_file)
-  print(f'Saved league history to local file: {out_file.resolve()}')
+  save_dataframe_to_csv(df=final_df, 
+                        dest=f'output/{year}/history', 
+                        f_name='history.csv')
+
+
+def save_dataframe_to_csv(df, dest, f_name):
+  """Safely store dataframe to local csv
+  
+  :param df: dataframe with data
+  :param dest: location to save csv 
+  :param f_name: name of file
+  :return: None
+  """
+  dest = Path(dest)
+  # Create output directory file structure if it doesnt exist already 
+  dest.mkdir(parents=True, exist_ok=True)
+  out_file = dest / f_name
+  df.to_csv(out_file)
+  logger.info(f'Saved league history to local file: {out_file.resolve()}')
+
 
 def make_history_table(year):
   """Read in the history csv and create html table
@@ -68,6 +98,13 @@ def make_history_table(year):
   """
   # Read in the history csv
   df= pd.read_csv(f'output/{year}/history/history.csv', index_col=0)
+  # If data frame is empty, this is the first year for the league
+  if df.empty:
+    logger.warning('No league history found! History page will be empty')
+    table = '<div class="text-center"><h3>Oh, my sweet summer child, there is no league history</h3></div>'
+    return '', '', '', table
+  # Fix owner column (FIXME do I want to be more careful here?)
+  df['OWNER(S)'] = df['OWNER(S)'].apply(lambda x: x.split(',')[0].title())
   # Add in empty first column for adding icons to later
   df.insert(loc=0, column='', value='')
   # Make html tables and combine into one long string
@@ -86,5 +123,56 @@ def make_history_table(year):
   # Build options dropdown menu for selection which history table
   option_menu = ''.join(['<option value="{}">{} Season</option>'.format(k, k) 
                          for k in keys])
-  return option_menu, all_tables
+  overall_table = make_overall_standings(df=df)
+  medal_count = make_overall_medal_count(df=df)
+  return option_menu, all_tables, overall_table, medal_count
 
+
+def make_overall_standings(df):
+  """Create aggregate table for regular season
+  
+  :param df: input df with regular season and final standings
+  :return: tables summarize aggregate stats for reg season 
+  """
+  df['W'] = df['REC'].apply(lambda x: int(x.split('-')[0]))
+  df['L'] = df['REC'].apply(lambda x: int(x.split('-')[1]))
+  summary = df.groupby('OWNER(S)').agg({'W':'sum', 'L':'sum','PF':'sum', 'PA':'sum', 
+                                        'PF/G':'mean', 'PA/G':'mean', 'DIFF':'mean'})
+  wpct = summary.apply(lambda x: x['W']/(x['L']+x['W']), axis=1)
+  summary.insert(2, 'PCT', wpct)
+  summary = summary.round({'PF/G':2,'PA/G':2, 'DIFF':2, 'PCT':3})
+  summary.insert(0, 'OWNER(S)', summary.index)
+  return summary.to_html(index=False, border=0, classes="table table-striped", table_id="aggregate_regular_season")
+
+
+def make_overall_medal_count(df):
+  """Create aggregate table for post-season medal count"""
+  df['First'] = df['RANK'].apply(lambda x: 1 if x==1 else 0)
+  df['Second'] = df['RANK'].apply(lambda x: 1 if x==2 else 0)
+  df['Third'] = df['RANK'].apply(lambda x: 1 if x==3 else 0)
+  df['NumTeams'] = df.groupby('season')['RANK'].transform(max)
+  df['Last'] = df.apply(lambda x: 1 if x['RANK'] == x['NumTeams'] else 0, axis=1)
+  summary = df.groupby('OWNER(S)').agg({'First':'sum', 'Second':'sum','Third':'sum','Last':'sum'})
+  summary['PTS'] = summary.apply(lambda x: x['First']*3 + x['Second']*2 + x['Third'] - x['Last'], axis=1)
+  trophy_tooltip='''<span class='footnote' data-placement="top" data-toggle="tooltip" title='
+		<table class="table table-responsive">
+			<thead> <tr style="text-align: right;">
+    		<th><i class="fa fa-trophy" style="color: #f1c40f"></i></th>
+    		<th><i class="fa fa-trophy" style="color: #95a5a6"></i></th>
+    		<th><i class="fa fa-trophy" style="color: #965A38"></i></th>
+    		<th>&#128701;</th></tr>
+      </thead>
+		  <tbody><tr><td>3</td>
+                 <td>2</td>
+							   <td>1</td>
+							   <td>-1</td></tr>
+      </tbody>
+		</table>'></span>'''
+  new_cols = ['<i class="fa fa-trophy" style="color: #f1c40f"></i>',
+              '<i class="fa fa-trophy" style="color: #95a5a6"></i>',
+              '<i class="fa fa-trophy" style="color: #965A38"></i>',
+              '&#128701;',
+              f'PTS{trophy_tooltip}']
+  summary.columns = new_cols
+  summary.insert(0, 'OWNER(S)', summary.index)
+  return summary.to_html(index=False, border=0, classes="table table-striped", table_id="medal_count", escape=False)

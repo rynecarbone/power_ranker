@@ -1,4 +1,8 @@
-import requests
+#!/usr/bin/env python
+
+"""Main class to handle scraped league stats"""
+
+import logging
 import configparser
 from operator import attrgetter
 from .team import Team
@@ -6,22 +10,25 @@ from .settings import Settings
 from .two_step_dom import TwoStepDom
 from .lsq import LSQ
 from .colley import Colley
-from .exception import (PrivateLeagueException,
-                        InvalidLeagueException,
-                        UnknownLeagueException, )
 from .utils import (fix_teamId, 
                     calc_sos, 
                     calc_luck,
                     calc_cons,
                     calc_power, 
                     save_ranks, 
-                    calc_tiers)
+                    calc_tiers,
+                    fetch_page)
 from .rank import norm_by_zscore, norm_rank, norm_by_max
 from .web.radar import make_radar
 from .web.website import generate_web
 from .web.power_plot import make_power_plot
 from .playoff_odds import calc_playoffs 
 from .history import scrape_history
+
+__author__ = 'Ryne Carbone'
+
+logger = logging.getLogger(__name__)
+
 
 #___________________
 class League(object):
@@ -33,7 +40,7 @@ class League(object):
     self.week        = ''
     self.teams       = []
     self.config_file = config_file
-    self.ENDPOINT    = "http://games.espn.com/ffl/api/v2/"
+    self.ENDPOINT    = "http://games.espn.com/ffl/api/v2/leagueSettings"
     self.s2          = None 
     self.swid        = None
     self._scrape_league()
@@ -46,28 +53,20 @@ class League(object):
     # Read config
     self._get_config()
     self._set_basic_info()
-    params = { 'leagueId': self.league_id,
-               'seasonId': self.year }
-    self.cookies = None
-    if self.s2 and self.swid:
-      self.cookies = { 'espn_s2': self.s2,
-                  'SWID'   : self.swid }
     # Scrape info
-    r = requests.get('%sleagueSettings' % (self.ENDPOINT, ), params=params, cookies=self.cookies)
-    self.status = r.status_code
-    data = r.json()
-    if self.status == 401:
-      raise PrivateLeagueException(data['error'][0]['message'])
-    elif self.status == 404:
-      raise InvalidLeagueException(data['error'][0]['message'])
-    elif self.status != 200:
-      raise UnknownLeagueException('Unknown %s Error' % self.status)
+    try:
+      data = fetch_page(league_id=self.league_id, year=self.year, cookies=self.cookies, 
+                        ENDPOINT=self.ENDPOINT, use_soup=False, use_json=True)
+    except Exception as e:
+      logger.exception(e)
+      raise(e)
     self._scrape_teams(data)
     self._scrape_settings(data)
     self._update_for_week(self.week)
 
   def _get_config(self):
     '''Read configuration file'''
+    logger.info(f'Parsing config file: {self.config_file}')
     config = configparser.RawConfigParser(allow_no_value=True)
     config.read(self.config_file)
     self.config = config
@@ -79,6 +78,10 @@ class League(object):
     self.week        = self.config['League Info'].getint('week')
     self.s2          = self.config['Private League'].get('s2', None)
     self.swid        = self.config['Private League'].get('swid', None)
+    # Set cookies 
+    self.cookies = {'espn_s2': self.s2, 'SWID': self.swid} if (self.s2 and self.swid) else None
+    logger.debug(f'Parsed and saved basic info: league_id: {self.league_id}, year: {self.year}, '\
+                f'week: {self.week}, cookies: {self.cookies}')
 
   def sorted_teams(self, sort_key='teamId', reverse=False):
     '''Returns league teams sorted by the string <sort_key> 
@@ -87,6 +90,7 @@ class League(object):
 
   def _scrape_teams(self, data):
     '''Scrape info for each team from ESPN'''
+    logger.info('Collecting stats for all teams')
     raw_teams = data['leaguesettings']['teams']
     for t in raw_teams: self.teams.append(Team(raw_teams[t]))
     fix_teamId(self.sorted_teams(sort_key='teamId'))
@@ -186,6 +190,7 @@ class League(object):
 	     Configuration for all the metrix is passed via config
 	     Default values are set if they are missing from config file
        If week is passed, rankings are updated for that week number'''
+    logger.info('Calculating power rankings')
     # Update week
     if week > 0: self._update_for_week(week)
 	  # Calculate two-step dominance rankings
@@ -232,6 +237,7 @@ class League(object):
     '''Creates website based on current power rankings.
        Must run get_power_rankings() first'''
     # Make Radar plots of each teams stats
+    logger.info('Creating radar plots to summarize team stats')
     Y_LOW  = [float(yl.strip()) for yl in self.config['Radar'].get('Y_LOW').split(',')]
     Y_HIGH = [float(yh.strip()) for yh in self.config['Radar'].get('Y_HIGH').split(',')]
     for t in self.teams:

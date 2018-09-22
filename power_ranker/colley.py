@@ -1,6 +1,14 @@
 # coding=utf-8
+
+"""Calculate colley matrix"""
+
+import logging
 import numpy as np
 from scipy.linalg import solve
+
+__author__ = 'Ryne Carbone'
+
+logger = logging.getLogger(__name__)
 
 class Colley(object):
   '''Calculates rating using Colley matrix'''
@@ -53,5 +61,7 @@ class Colley(object):
   
   def get_ranks(self, teams):
     '''Create the colley matrix and save ranks to teams'''
+    logger.debug('Calculating the colley matrix')
     self._calc_matrix(teams)
+    logger.debug('Solving the colley matrix equation to find ranks')
     self._solve_matrix(teams)

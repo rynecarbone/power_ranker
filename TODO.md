@@ -16,3 +16,12 @@
 ### Error Handling
 - Have more than zero error handling
 
+
+### Explore other endpoints? 
+- playerInfo, scoreboard, player/news, recentActivity, leagueSchedules, 
+  teams, rosterInfo, schedule, polls, messageboard, boxscore, matchups,
+	status, teams/pendingMoveBatches, tweets, stories, livescoring
+
+### plot strength by position
+ - see https://stmorse.github.io/journal/espn-fantasy-2-python.html
+

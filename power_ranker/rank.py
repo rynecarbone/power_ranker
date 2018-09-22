@@ -1,4 +1,11 @@
+#!/usr/bin/env python
+
+"""Class to handle different ranks used in power rankings"""
+
 import numpy as np
+
+__author__ = 'Ryne Carbone'
+
 
 class TeamRank:
   '''Store all ranks for a team'''

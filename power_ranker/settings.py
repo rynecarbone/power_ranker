@@ -1,7 +1,18 @@
+#!/usr/bin/env python
+
+"""Save fantasy football league settings"""
+
+import logging
 import pprint
+
+__author__ = 'Ryne Carbone'
+
+logger = logging.getLogger(__name__)
+
 class Settings(object):
     '''Creates Settings object'''
     def __init__(self, data):
+        logger.info('Fetching and storing league settings')
         #for k in sorted(data['leaguesettings'].keys()):
         #  #if len(data['leaguesettings'][k])<2:
         #  if not isinstance(data['leaguesettings'][str(k)], list) and not isinstance(data['leaguesettings'][str(k)], dict):

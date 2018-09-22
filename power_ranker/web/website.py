@@ -1,9 +1,18 @@
+#!/usr/bin/env python
+
+"""Create all html, css, js content for displaying power rankings on a website"""
+
 import os
+import logging
 import shutil
 from distutils.dir_util import copy_tree
 import pkg_resources
 import numpy as np
 from ..history import make_history_table
+
+__author__ = 'Ryne Carbone'
+
+logger = logging.getLogger(__name__)
 
 #__________________
 def get_arrow(i, j):
@@ -66,7 +75,7 @@ def make_game_log(t, week):
   win = '<span class="text-success">W</span>'
   loss = '<span class="text-danger">L</span>'
   game_log = ''
-
+  logger.debug(f'Creating game log for team {t.teamId}')
   for w,o in enumerate(t.stats.schedule[:week]):
     game_log += tr + td + '%s'%(w+1) + dt
     game_log += td + '%s'%(o.teamName) + dt
@@ -85,7 +94,7 @@ def make_power_table(teams,week):
   dt = '</td>'
   rt = '</tr>'
   table = ''
-  
+  logger.debug('Creating html table to display power rankings')
   for i,t in enumerate(sorted(teams, key=lambda x: x.rank.power, reverse=True)):
     arrow = get_arrow(int(t.rank.prev), int(i+1))
     table += tr
@@ -136,6 +145,7 @@ def make_teams_page(teams, year, week, league_name, settings):
   stock_url = 'http://www.suttonsilver.co.uk/wp-content/uploads/blog-stock-03.jpg'  
   # Make team page for each owner
   for i,t in enumerate(sorted(teams, key=lambda x: x.rank.power, reverse=True)):
+    logger.debug(f'Creating team html page for team {t.teamId}')
     logo  = t.logoUrl if len(t.logoUrl) > 4 else stock_url
     first = t.owner.split()[0].title()
     last  = t.owner.split()[1].title()
@@ -221,6 +231,7 @@ def make_teams_page(teams, year, week, league_name, settings):
 #________________________________
 def make_power_page(teams, year, week, league_name):
   '''Produces power rankings page'''
+  logger.debug('Creating full power ranking page, inserting league data into template')
   local_file = 'output/%s/power.html'%year
   template   = pkg_resources.resource_filename('power_ranker','docs/template/power.html')
   src = ['INSERT WEEK',
@@ -238,6 +249,7 @@ def make_power_page(teams, year, week, league_name):
 #________________________________
 def make_about_page(teams, year, league_name):
   '''Produces about page, updating week for power rankings'''  
+  logger.debug('Creating full about page')
   local_file = 'output/%s/about/index.html'%year
   template   = pkg_resources.resource_filename('power_ranker','docs/template/about.html')
   src = ['PLAYERDROPDOWN',
@@ -257,6 +269,7 @@ def make_about_page(teams, year, league_name):
 #________________________________
 def make_welcome_page(year, week, league_id, league_name):
   '''Produces welcome page, with power plot'''
+  logger.debug('Creating full welcome page with box plot, filling in weekly data')
   local_file = 'output/%s/index.html'%year
   template   = pkg_resources.resource_filename('power_ranker','docs/template/welcome.html')
   # Source and replacement strings from template
@@ -275,17 +288,22 @@ def make_welcome_page(year, week, league_id, league_name):
 #________________________________
 def make_history_page(teams, year, league_name):
   '''Produces league history page'''
+  logger.debug('Creating full league history page, filling in league data')
   local_file = 'output/%s/history/index.html'%year
   template   = pkg_resources.resource_filename('power_ranker','docs/template/history.html')
-  option_menu, history_tables = make_history_table(year)
+  option_menu, history_tables, overall_table, medal_table = make_history_table(year)
   src = ['INSERT_LEAGUE_NAME',
          'PLAYER_DROPDOWN',
          'INSERT_OPTIONS',
-         'INSERT_HISTORY_TABLES']
+         'INSERT_HISTORY_TABLES',
+         'INSERT_OVERALL_TABLE',
+         'INSERT_MEDAL_TABLE']
   rep = [league_name,
          get_player_drop(teams, level='../'),
          option_menu,
-         history_tables]
+         history_tables,
+         overall_table,
+         medal_table]
   # Write from template to local, with replacements
   output_with_replace(template, local_file, src, rep)
 
@@ -307,6 +325,7 @@ def output_with_replace(template, local_file, src, rep):
 def copy_css_js_themes(year):
   '''Copy the css and js files to make website 
      look like it is not from 1990'''
+  logger.debug('Copying all necessary css and js files for styling output')
   # Specific themes
   in_files = ['about.js','theme.js','history.js','theme.css','cover.css']
   for f in in_files:

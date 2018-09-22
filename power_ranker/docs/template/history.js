@@ -41,5 +41,30 @@ $(document).ready(function () {
     		$('#' + $(this).val()).show();
   		});
 	  });
+
+		// Aggregate Season Stats table should have sorting
+		$('#aggregate_regular_season').DataTable({
+			"searching": false,
+			"paging": false,
+			"info": false,
+			"order":[[3,"desc"]]
+		});
+
+		// Aggregate Medal count
+		$('#medal_count').DataTable({
+			"searching": false,
+			"paging": false,
+			"info": false,
+			"order":[[5,"desc"],[1,"desc"],[2,"desc"],[3,"desc"],[4,"asc"]]
+		});
+		// Tooltip
+		jQuery('[data-toggle="tooltip"]').each(function(){
+        var $elem = jQuery($(this));
+        $elem.tooltip({
+            html:true,
+            container: 'body',
+            delay: {hide:400}
+    		});
+		});
 });
 

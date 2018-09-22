@@ -1,3 +1,5 @@
+import sys
+import logging
 import argparse
 import shutil
 import os.path
@@ -5,6 +7,11 @@ import getpass
 import pkg_resources
 from power_ranker.league import League
 from power_ranker.private import PrivateLeague
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
+                    stream=sys.stdout,
+                    level=logging.INFO)
+logger = logging.getLogger('power_ranker_cli')
 
 #_______________________________
 def run_cl_rankings(config_file, private_league=False):

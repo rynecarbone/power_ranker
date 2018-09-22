@@ -1,5 +1,16 @@
+#!/usr/bin/env python
+
+"""Create boxplot of power rankings vs points scored"""
+
+import logging
+from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
+
+__author__ = 'Ryne Carbone'
+
+logger = logging.getLogger(__name__)
+
 
 #_____________________________________
 def make_power_plot(teams, year, week):
@@ -69,5 +80,9 @@ def make_power_plot(teams, year, week):
   for i,leg_item in enumerate(ax.get_legend().legendHandles):
     leg_item.set_color(c[i])
   plt.ylim(len(teams)+1,0)
-  f.savefig('output/%s/week%d/power_plot.png'%(year, week),dpi=my_dpi*2,bbox_inches='tight')
+  out_dir = Path(f'output/{year}/week{week}')
+  out_dir.mkdir(parents=True, exist_ok=True)
+  out_name = out_dir / 'power_plot.png'
+  f.savefig(out_name, dpi=my_dpi*2, bbox_inches='tight')
+  logger.info(f'Saved power ranking plot to local file: {out_name.resolve()}')
 

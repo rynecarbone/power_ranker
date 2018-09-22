@@ -1,8 +1,17 @@
+#!/usr/bin/env python
+
+"""Simulate the rest of season to calculate playoff odds"""
+
 import os
+import logging
 import matplotlib.pyplot as plt
 from matplotlib.ticker import NullFormatter
 import numpy as np
 from scipy.stats import norm
+
+__author__ = 'Ryne Carbone'
+
+logger = logging.getLogger(__name__)
 
 #_____________________________
 def calc_playoffs(teams, year, week, settings, n_sims=1000000):
@@ -12,7 +21,7 @@ def calc_playoffs(teams, year, week, settings, n_sims=1000000):
      settings: has settings for regular season, playoffs, divisions
      week: current week, needed to simulate rest of season
   '''
-  
+  logger.info('Calculating playoff odds')
   # Retreive settings to determine playoff format
   reg_season = settings.reg_season_count
   spots      = settings.playoff_team_count

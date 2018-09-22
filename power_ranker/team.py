@@ -1,5 +1,15 @@
+#!/usr/bin/env python
+
+"""Class to handle all information about team"""
+
+import logging
 from .rank import TeamRank
 from .stats import TeamStats
+
+__author__ = 'Ryne Carbone'
+
+logger = logging.getLogger(__name__)
+
 
 #_________________
 class Team(object):
@@ -28,6 +38,7 @@ class Team(object):
 
   def _get_game_data(self, data):
     '''Fetch schedule and scores for team'''
+    logger.debug(f'Parsing schedule and matchup data for team {self.teamId}')
     matchups = data['scheduleItems']
     for matchup in matchups:
       if matchup['matchups'][0]['isBye'] == False:

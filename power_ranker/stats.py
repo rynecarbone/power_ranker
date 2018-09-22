@@ -1,3 +1,14 @@
+#!/usr/bin/env python
+
+"""Class to handle statistics for each team"""
+
+import logging
+
+__author__ = 'Ryne Carbone'
+
+logger = logging.getLogger(__name__)
+
+
 class TeamStats:
   '''Keep track of team stats'''
   def __init__(self, data):
@@ -38,21 +49,24 @@ class TeamStats:
     print(' Aggregate losses : %s'%self.alosses)
   def _replace_opponents(self, teams):
     '''Replace team id number with team object'''
+    logger.debug('Replacing opponents in team schedule')
     for week, matchup in enumerate(self.schedule):
       for opponent in teams:
         if matchup == opponent.teamId:
           self.schedule[week] = opponent
   def _calc_mov(self):
     '''Calculate the margin of victory'''
+    logger.debug('Calculating the margin of victory for each game in schedule')
     for week, opponent in enumerate(self.schedule):
       mov = self.scores[week] - opponent.stats.scores[week]
       self.mov.append(mov)
   def _calc_wins_losses(self,teamId, week, teams):
     '''Recalculates based on specified week:
-       points for, ponits against
+       points for, points against
        wins, losses, streak
        aggregate wins, aggregate losses,
        aggregate wpct'''
+    logger.debug('Recalculating points, wins/losses, aggregate wins/losses based on week')
     self.awins      = 0. # aggregate wins
     self.alosses    = 0. # aggregate losses
     self.pointsFor  = 0. # points for
