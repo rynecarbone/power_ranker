@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 - Added code to calculate league history and display on history page
 - Updated text at bottom of each page, added links to league history
+- Fixed bug in MOV calculation for radar plot
 
 ## [1.1.1](https://github.com/rynecarbone/power_ranker/tree/1.1.1) - 2018-09-19
 ### Fixed
