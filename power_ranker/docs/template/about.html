@@ -67,7 +67,7 @@
       <!-- Main jumbotron for a primary marketing message or call to action -->
       <div class="jumbotron">
         <h1>Inside the Power Rankings</h1>
-      	<p>Each component of the power rankings are explained here</p>
+      	<p>Each component of the power rankings is explained here</p>
 			</div>
 
 
@@ -81,13 +81,13 @@
 
 		<p>The goal of the rankings is to create a prediction for the result, $R_{g}$, of each game, $g$. The result should only depend on
 		the scores of the two teams playing: $S_h$ (score, home team), and $S_a$ (score, away team). The score difference, $\Delta S_{ha}$,
-		is used to characterize the result. To protect against anomolously large score differences, a truncated score difference is defined:
+		is used to characterize the result. To protect against anomalously large score differences, a truncated score difference is defined:
 		$$\Delta S_{trunc} = \Delta S_{max}\text{tanh}\left(\frac{\Delta S_{ha}}{\Delta S_{max}}\right)$$
 		where $\Delta S_{trunc}\simeq \Delta S_{ha}$ for small values of $\Delta S_{ha}$, and $\Delta S_{trunc}\simeq \Delta S_{max}$ for large
 		values of $\Delta S_{ha}$.
 		</p>
 
-		<p>In the end, winnning a game is important with respect to making the playoffs. A win bonus, $B_w$, is added to the result, $R_g$.
+		<p>In the end, winning a game is important with respect to making the playoffs. A win bonus, $B_w$, is added to the result, $R_g$.
 		Finally, a score ratio is included to scale the margin of victory, and give a better indication of how close the game was:
 		$$\frac{\Delta S_{ha}}{S_w}$$
 		where $S_{w}$ is the score of the winning team. This is weighted with a score ratio weight, $B_{r}$, so that the final result function is:
@@ -102,7 +102,7 @@
 								    \end{cases}$$
 		where $P_g$ is assumed to depend linearly on the team rankings.
 		If the season has $N_g$ games, and there are $N_t$ teams, there will be $N_g$ measurements of the $N_t$ rankings ($\vec{r}$) during the season. A chi square
-		function is used to minimize the difference betweent he prediciton function and the result funciton:
+		function is used to minimize the difference between the prediction function and the result function:
 		$$\chi^2(\vec{r}) = \sum_{g=1}^{N_g}\left[\frac{R_g(\vec{\alpha}) - P_g(\vec{r})}{\sigma_g} \right] = \sum_{g=1}^{N_g}\left[\frac{R_g(\vec{\alpha}) - \sum_{t=1}^{N_t}\delta_{gt}r_t}{\sigma_g} \right]$$
 		where $\sigma_g$ is the measurement error for each game.		</p>
 
@@ -127,7 +127,7 @@
 		<div class="page-header">
 			<h1>2SD</h1>
 		</div>
-		<p>The Two Step Dominace Matrix Method<span class='footnote' data-toggle="tooltip" title="Some examples of using a <a href='http://directorymathsed.net/download/Thomas.pdf'>Dominance Matrix</a>"></span>
+		<p>The Two Step Dominance Matrix Method<span class='footnote' data-toggle="tooltip" title="Some examples of using a <a href='http://directorymathsed.net/download/Thomas.pdf'>Dominance Matrix</a>"></span>
 		is based on directed graphs. A more sophisticated version is currently under consideration, much like
 		the PageRank algorithm<span class='footnote' data-toggle="tooltip" title="Generalizing PageRank to rank NFL teams discussed <a href='http://www2.sas.com/proceedings/forum2008/151-2008.pdf'>here</a>."></span> <span class='footnote' data-toggle="tooltip" title="Another discussion on PageRank for NFL rankings <a href='https://www.ncsu.edu/crsc/reports/ftp/pdf/crsc-tr06-19.pdf'>here</a>."></span>
 		Google developed to rank importance of websites.
@@ -206,7 +206,7 @@
 		</ul>
 
 		<p>The Colley Matrix only factors in wins and losses. In college football,
-				the motivation is to combat the tendancy for teams to run up the score
+				the motivation is to combat the tendency for teams to run up the score
 				to improve their rankings. In fantasy football, if you're not running up
 				the score, you're not playing the game. In that sense, the Colley rankings
 				may be incomplete when it comes to fantasy; nevertheless, it can still offer
@@ -224,7 +224,7 @@
 		according to the result in a bayesian manner.
 		</p>
 
-		<p>To account for strength of schedlue, the rankings metric in \eqref{eq:r} can be
+		<p>To account for strength of schedule, the rankings metric in \eqref{eq:r} can be
 		utilized. Consider rewriting the number of wins for team $i$ as:
 		$$\begin{align}
 			n_{w,i}\quad & = &\frac{n_{w,i}-n_{l,i}}{2} +\frac{n_{tot,i}}{2}\nonumber \\
@@ -298,9 +298,9 @@
 		<div class="page-header">
 			<h1>Power</h1>
 		</div>
-		<p>Besides the 5 metrics described above, the overall power ranking also takes into account winning streaks
-		and a consistency metric. A small winning streak bonus is added for streaks at least two games long. The consistency 
-		metric is calculated by:
+		<p>Besides the five metrics described above, the overall power ranking also takes into account winning streaks, 
+		aggregate winning percentage, and a consistency metric. A small winning streak bonus is added for streaks at 
+		least two games long. The consistency metric is calculated by:
 		$$R_{cons} = s_{min}+s_{max}+s_{avg}$$
 		where $s_{min}, s_{max}, s_{avg}$ are a team's minimum, maximum, and average scores for the season.
 		</p>
@@ -310,7 +310,7 @@
 		<p>
 		The overall power ranking is thus:
 		$$\begin{align}R_{\text{power}}\quad &=& \alpha_{lsq}R_{lsq} + \alpha_{2sd}R_{2sd} + \alpha_{colley}R_{colley} +  \alpha_{sos}R_{sos} \ + \nonumber \\
-																	&&	 \alpha_{luck}R_{luck} + \alpha_{cons}R_{cons} + \alpha_{streak}W_{\gt2}
+																	&& \alpha_{awp}R_{awp} +	 \alpha_{luck}R_{luck} + \alpha_{cons}R_{cons} + \alpha_{streak}W_{\gt2}
 		\end{align}$$
 		</p>
 
@@ -318,11 +318,11 @@
 			<h1>Tier</h1>
 		</div>
 		<p>To determine the tiers, a Gaussian Kernel Density Estimation (KDE)<span class='footnote' data-toggle="tooltip" title="Wikipedia with way too much detail on <a href='https://en.wikipedia.org/wiki/Kernel_density_estimation'>Gaussian Kernel Density Estimation</a>"></span> method is used.
-		Given a list of overall power scores, the KDE attempts to create a smooth probability density funciton.
+		Given a list of overall power scores, the KDE attempts to create a smooth probability density function.
 		By looking for minima in the KDE, it is possible to identify separated clusters of rankings.
 		</p>
 		<p>The KDE method is highly sensitive to the specified bandwidth: the range over which the KDE is allowed to vary. If the bandwidth
-		is too large, there is oversmoothing, too small and each data point will be isolated. From week to week 
+		is too large, there is over-smoothing, too small and each data point will be isolated. From week to week 
 		a bandwidth is selected such that it produces 3-6 tiers. An example output of the KDE method is shown below:
 		</p>
 		<div class="col-md-12">

@@ -105,8 +105,10 @@ def make_power_table(teams,week):
     table += td + "{0:.3f}".format(float(t.rank.lsq)) + dt
     table += td + "{0:.3f}".format(float(t.rank.dom)) + dt
     table += td + "{0:.3f}".format(float(t.rank.col)) + dt
+    table += td + "{0:.3f}".format(float(t.stats.awp)) + dt
     table += td + "{0:.3f}".format(float(t.rank.sos)) + dt
     table += td + "{0:.3f}".format(float(t.rank.luck)) + dt
+    table += td + "{0:.3f}".format(float(t.rank.cons)) + dt
     table += td + str(t.rank.tier) + dt
     table += rt
 
