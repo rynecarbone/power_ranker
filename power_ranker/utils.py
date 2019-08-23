@@ -18,12 +18,12 @@ __author__ = 'Ryne Carbone'
 
 logger = logging.getLogger(__name__)
 
-#___________________________
+
 def fix_teamId(teams):
-  '''Sometimes teamIds skip numbers if people from your league have quit,
+  """Sometimes teamIds skip numbers if people from your league have quit,
     For now, just redefining teamId by number of teams,
     Using that to also fix opponentId.
-    Teams should be passed, ordered by ascending teamId'''
+    Teams should be passed, ordered by ascending teamId"""
   logger.debug('Reordering teamId incase league members have left between seasons')
   old = [] # store old id to find in schedule
   new = [] # store new ids to replace
@@ -37,10 +37,10 @@ def fix_teamId(teams):
       new_opp = new[old.index(o)] 
       t.stats.schedule[w] = new_opp 
 
-#_________________________________________
+
 def calc_sos(teams, week, rank_power=2.37):
-  '''Calculates the strength of schedule, 
-     based on the lsq rank'''
+  """Calculates the strength of schedule,
+     based on the lsq rank"""
   # Find avg of opponent rankings
   logger.debug(f'Calculating strength of schedule with rank_power: {rank_power}')
   for t in teams:
@@ -49,11 +49,11 @@ def calc_sos(teams, week, rank_power=2.37):
       rank_i += o.rank.lsq**rank_power
     t.rank.sos = rank_i/float(week)
 
-#_________________________________________
+
 def calc_luck(teams, week, awp_weight=0.5):
-  '''Calcualtes the luck index, considers:
+  """Calcualtes the luck index, considers:
     - Aggregate winning pct vs actual winning pct
-    - Opponents score against you, vs their average score'''
+    - Opponents score against you, vs their average score"""
   logger.debug('Calculating luck rankings')
   avg_score_weight = 1 - awp_weight # weight in the luck index
   for t in teams:
@@ -75,10 +75,10 @@ def calc_luck(teams, week, awp_weight=0.5):
     luck_ind = o_avg_over_score*avg_score_weight + wpct_over_awp*awp_weight
     t.rank.luck = 1./luck_ind
 
-#___________________________________________
+
 def calc_cons(teams, week):
-  '''Calculate the consistency metric, based on your
-     avg, minimum, and maximum scores'''
+  """Calculate the consistency metric, based on your
+     avg, minimum, and maximum scores"""
   logger.debug('Calculating consistency rankings')
   for t in teams:
     t_min = float(min(t.stats.scores[:week]))
@@ -87,10 +87,10 @@ def calc_cons(teams, week):
     t_cons = t_min+t_max+t_avg 
     t.rank.cons = t_cons
 
-#__________________________________________________________________________
-def calc_power(teams, week, w_dom=0.18, w_lsq=0.18, w_col=0.18, w_awp=0.18, 
+
+def calc_power(teams, week, w_dom=0.18, w_lsq=0.18, w_col=0.18, w_awp=0.18,
                w_sos=0.06, w_luck=0.06, w_cons=0.10, w_strk=0.06):
-  '''Calculates the final power rankings based on input metrics'''
+  """Calculates the final power rankings based on input metrics"""
   logger.debug('Aggregating all power rankings')
   for t in teams:
     dom  = float(t.rank.dom)
@@ -109,9 +109,9 @@ def calc_power(teams, week, w_dom=0.18, w_lsq=0.18, w_col=0.18, w_awp=0.18,
     # Normalize with hyperbolic tangent #FIXME should this be configurable too?
     t.rank.power = 100*np.tanh(power/0.5)
 
-#________________________________________________________
+
 def calc_tiers(teams, year, week, bw=0.09, order=4, show=False):
-  '''Calculate 3-5 tiers using Gaussian Kernal Density'''
+  """Calculate 3-5 tiers using Gaussian Kernal Density"""
   logger.info('Calculating tiers for power rankings')
   # Store rankings in list
   ranks = [t.rank.power for t in teams]
@@ -144,10 +144,10 @@ def calc_tiers(teams, year, week, bw=0.09, order=4, show=False):
     # Save tier
     t.rank.tier =  tier
 
-#________________________________________
+
 def save_ranks(teams, year, week, getPrev=True):
-  '''Save the power rankings to a file, 
-    optionally retreive previous week's rankings'''
+  """Save the power rankings to a file,
+    optionally retreive previous week's rankings"""
   # Save power rankings (teamId:rank)
   new_dir = Path(f'output/{year}/week{week}')
   new_dir.mkdir(parents=True, exist_ok=True)
@@ -201,29 +201,25 @@ def save_ranks(teams, year, week, getPrev=True):
   logger.info(f'Read previous overall ESPN rankings from local file: {old_name.resolve()}')
 
 
-def fetch_page(league_id, year, cookies, ENDPOINT, use_soup=True, use_json=False):
-  """Handle the web scraping for specified ENDPOINT 
+def fetch_page(endpoint, params, cookies, use_soup=True, use_json=False):
+  """Handle the web scraping for specified endpoint
 
-  :param league_id: id of the league
-  :param year: current season to fetch page
+  :param endpoint: endpoint to retrieve from domain
+  :param params: parameter dict to send to requests
   :param cookies: cookies for access to private league
-  :param ENDPOINT: endpoint to retreive from domain
   :param use_soup: flag to use soup to parse html
   :param use_json: flag to parse json
   :return: html parsed content
   """
-  # Scrape league history page if it exists
-  params = {'leagueId': league_id,
-            'seasonId': year}
-  logger.debug(f'Fetching page {ENDPOINT} with params: {params}, cookies: {cookies}')
-  r = requests.get(f'{ENDPOINT}', params=params, cookies=cookies)
+  logger.debug(f'Fetching page {endpoint} with params: {params}, cookies: {cookies}')
+  r = requests.get(endpoint, params=params, cookies=cookies)
   # Make sure our response was ok
   if r.status_code == 401:
-    raise PrivateLeagueException(f'league_id: {league_id}, season: {year}, cookies: {cookies}')
+    raise PrivateLeagueException(f'endpoint: {endpoint}, params: {params}, cookies: {cookies}')
   elif r.status_code == 404:
-    raise InvalidLeagueException(f'league_id: {league_id}, season: {year}, cookies: {cookies}')
+    raise InvalidLeagueException(f'endpoint: {endpoint}, params: {params}, cookies: {cookies}')
   elif r.status_code != 200:
-    raise UnknownLeagueException(f'league_id: {league_id}, season: {year}, cookies: {cookies}')
+    raise UnknownLeagueException(f'endpoint: {endpoint}, params: {params}, cookies: {cookies}')
   # Parse response into html
   if use_soup:
     return BeautifulSoup(r.content, features='lxml')

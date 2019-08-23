@@ -3,57 +3,83 @@
 """Calculate two step dominance matrix"""
 
 import logging
-import numpy as np
+import pandas as pd
+from scipy.sparse import coo_matrix
 
 __author__ = 'Ryne Carbone'
 
 logger = logging.getLogger(__name__)
 
 
-class TwoStepDom(object):
-  '''Class to get the two step dominance matrix and rankings'''
-  
-  def __init__(self, N_teams, week, sq_weight=0.25, decay_penalty=0.5):
-    self.w_sq       = sq_weight
-    self.w_l        = 1. - sq_weight
-    self.win_matrix = np.zeros(shape=(N_teams,N_teams))
-    self.week       = week
-    self.dp         = decay_penalty
+def get_two_step_dom_ranks(df_schedule, week, sq_weight=0.25, decay_penalty=0.5):
+    """Calculate rankings using two step dominance matrix
 
-  def _calc_win_matrix(self, teams):
-    '''Calculate the win matrix for specified week'''
-    logger.debug('Calculating the win matrix for 2SD')
-    # Loop over the teams to find the wins versus other opponents
-    for t_index, t in enumerate(teams):
-      # Loop over each week, retreive MOV and opponent instance
-      for w, (mov, opponent) in enumerate(zip(t.stats.mov[:self.week], t.stats.schedule[:self.week])):
-        o_index = int(opponent.teamId) - 1
-        # Positive MOV is a win, weight older games less using decay penalty
-        # Oldest game will be weighted by (1.0 - decay penalty). Nominal value is 0.5
-        if mov > 0:
-          self.win_matrix[t_index][o_index] += (1-self.dp) + (self.dp*w)/float(self.week)
+    Note: No longer returning 'normed' dominance rankings
+    Need to normalize by average rank after joining to team data
+    :param df_schedule: daata frame with rows for each matchup
+    :param week: current week
+    :param sq_weight: weight for the squared wins matrix
+    :param decay_penalty: weigh current wins more
+    :return: data frame with rankings for each team
+    """
+    wins_matrix = calc_wins_matrix(df_schedule, week, decay_penalty)
+    dom_matrix = (1-sq_weight)*wins_matrix + sq_weight*(wins_matrix@wins_matrix)
+    # For each row, sum values across the columns
+    dom_ranks = pd.DataFrame(dom_matrix.sum(axis=1), columns=['dom_rank'])
+    # Add in team_id so we can join later
+    dom_ranks['team_id'] = dom_ranks.index
+    #pd.merge(df_teams, dom_ranks, on='team_id', how='inner')
+    return dom_ranks
 
-  def _calc_two_step_dom(self, teams):
-    '''Calculate the two step dominance matrix and save rankings'''
-    logger.debug('Calculating the two step dominance matrix and solving for rankings')
-    # Square the win matirx, and apply weight
-    m_sq = np.linalg.matrix_power(self.win_matrix, 2)
-    m_sq *= self.w_sq
-    # Weigh the linear dominance matrix
-    m_lin = self.win_matrix * self.w_l
-    # Get the 2SD matrix
-    tsd_matrix = m_sq + m_lin
-    # Calc the dominance rank by summing rows
-    for row, t in zip(tsd_matrix, teams):
-      t.rank.dom = sum(row)
-    # Normalize avg dom rank to 1
-    dom_list = [x.rank.dom for x in teams]
-    avg_dom = float(sum(dom_list))/len(dom_list)
-    for t in teams:
-      t.rank.dom /= avg_dom
 
-  def get_ranks(self, teams):
-    '''Get the rankings for each team from two step dominance matrix'''
-    self._calc_win_matrix(teams)
-    self._calc_two_step_dom(teams)
+def calc_wins_matrix(df_schedule, week, decay_penalty):
+    """Calculate wins matrix from season schedule
+
+    Note: there will be some extra zero-filled rows if team ids
+    are non-contiguous, for example from teams leaving/entering
+    the league from year to year. This will be fine when we sum
+    the rows later.
+
+    :param df_schedule: data frame with rows for each matchup
+    :param week: current week
+    :param decay_penalty: weigh current wins more
+    :return: n_teams x n_teams wins matrix
+    """
+    # Create COO formatted wins matrix
+    # v, (x,y)  where:
+    #   x: team id
+    #   y: opponent id
+    #   v: (1-decay) + decay * week_i/current_week if team wins else 0
+    # Note: takes care of repeat (x,y) by summing v as expected
+    df_schedule_coo = (
+      df_schedule
+      .query(f'matchupPeriodId<={week} & winner!="UNDECIDED"')
+      [['away_id', 'home_id', 'matchupPeriodId', 'winner']]
+    )
+    # Calculate matrix values for away wins
+    df_schedule_coo['away_value'] = df_schedule_coo.apply(
+      lambda x: (1 - decay_penalty) + decay_penalty * x.get('matchupPeriodId') / week
+      if x.get('winner') == 'AWAY' else 0,
+      axis=1
+    )
+    # Calculate matrix values for home wins
+    df_schedule_coo['home_value'] = df_schedule_coo.apply(
+      lambda x: (1 - decay_penalty) + decay_penalty * x.get('matchupPeriodId') / week
+      if x.get('winner') == 'HOME' else 0,
+      axis=1
+    )
+    # Convert from series to sparse coo, add home and away values
+    wins_matrix = coo_matrix(
+      (df_schedule_coo.get('away_value').values,
+       (df_schedule_coo.get('away_id').values,
+        df_schedule_coo.get('home_id').values))
+    )
+    wins_matrix += coo_matrix(
+      (df_schedule_coo.get('home_value').values,
+       (df_schedule_coo.get('home_id').values,
+        df_schedule_coo.get('away_id').values))
+    )
+    return wins_matrix
+
+
 

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-"""Collect and store fantasy fooball league hisory"""
+"""Collect and store fantasy football league hisory
+
+FIXME: New history endpoint: 'https://fantasy.espn.com/apis/v3/games/ffl/leagueHistory/'
+"""
 
 import logging
 import pandas as pd
@@ -11,7 +14,8 @@ __author__ = 'Ryne Carbone'
 
 logger = logging.getLogger(__name__)
 
-ENDPOINT = 'http://games.espn.com/ffl/tools/finalstandings'
+history_endpoint = 'https://fantasy.espn.com/apis/v3/games/ffl/leagueHistory/'
+
 
 def scrape_history(league_id, year, cookies=None):
   """Scrape from the ESPN league history page
@@ -25,7 +29,7 @@ def scrape_history(league_id, year, cookies=None):
   logger.info('Beginning league history scraping,')
   try:
     history_page = fetch_page(league_id=league_id, year=(year-1), 
-                              cookies=cookies, ENDPOINT=ENDPOINT)
+                              cookies=cookies, ENDPOINT=history_endpoint)
   except Exception as e:
     logger.exception(e)
     raise(e)
@@ -51,7 +55,7 @@ def scrape_history(league_id, year, cookies=None):
   for y in years:
     try:
       history_page = fetch_page(league_id=league_id, year=y, 
-                                cookies=cookies, ENDPOINT=ENDPOINT, use_soup=False)
+                                cookies=cookies, ENDPOINT=history_endpoint, use_soup=False)
     except Exception as e:
       logger.exception(e)
       raise(e)
