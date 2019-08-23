@@ -16,3 +16,6 @@ output/
 
 # My own shortcuts and debugging
 my_help.txt
+
+# Virtual environment
+venv/

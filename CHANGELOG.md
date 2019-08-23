@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+- Major changes related to updated v3 of API, old endpoints no longer valid
+- Refactoring code to use pandas and vectorized calculations
 - Added code to calculate league history and display on history page
 - Updated text at bottom of each page, added links to league history
 - Fixed bug in MOV calculation for radar plot
