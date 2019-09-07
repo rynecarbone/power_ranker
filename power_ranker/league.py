@@ -5,7 +5,6 @@
 import logging
 import configparser
 import pandas as pd
-from operator import attrgetter
 from .get_season_data import(
   build_team_table,
   build_schedule_table,
@@ -101,7 +100,7 @@ class League:
     self.df_teams = build_team_table(data)
     self.df_schedule = build_schedule_table(data)
     self.df_season_summary = build_season_summary_table(df_schedule=self.df_schedule, week=self.week)
-    self.df_ranks = self.df_teams[['team_id']].reset_index(drop=True)
+    self.df_ranks = self.df_season_summary[['team_id', 'overall']].reset_index(drop=True)
 
   def _scrape_settings(self, data):
     """Scrape league settings info"""
@@ -183,38 +182,67 @@ class League:
       w_strk=w_strk
     )
 
-  def _save_ranks(self, getPrev=True):
-    """Save the power rankings, optionally calculate change from previous week"""
-    teams_sorted = self.sorted_teams(sort_key='rank.power', reverse=True)
-    save_ranks(teams_sorted, self.year, self.week, getPrev=getPrev)
-
   def _calc_tiers(self, bw=0.09, order=4, show_plot=False):
     """Calculates tiers based on the power rankings"""
-    teams_sorted = self.sorted_teams(sort_key='rank.power', reverse=True)
-    calc_tiers(teams_sorted, self.year, self.week, bw=bw, order=order, show=show_plot)
+    self.df_ranks = calc_tiers(
+      df_ranks=self.df_ranks,
+      year=self.year,
+      week=self.week,
+      bw=bw,
+      order=order,
+      show=show_plot)
+
+  def _save_ranks(self):
+    """Save the power rankings, optionally calculate change from previous week"""
+    ranks_change = save_ranks(self.df_ranks, self.year, self.week)
+    if ranks_change is not None:
+      self.df_ranks = (
+        pd.merge(self.df_ranks, ranks_change, on='team_id', how='left')
+          .sort_values('team_id')
+          .reset_index(drop=True)
+      )
+    else:
+      self.df_ranks['d_power'] = 0
+      self.df_ranks['d_overall'] = 0
+      self.df_ranks['d_tier'] = 0
 
   def print_rankings(self):
     """Print table of metrics and final power rankings"""
     print(f'\nWeek {self.week} Power Rankings\n======================')
-    # FIXME, add in deltas, change order, add agg wpct, tier
     pd.set_option('precision', 3)
-    pd.set_option('max_columns', 15)
-    print(pd.merge(self.df_teams[['team_id', 'firstName', 'lastName']],
-                   self.df_ranks, on='team_id')
-          .sort_values('power', ascending=False)
-          .reset_index(drop=True))
-    #print('%20s %7s  %8s  %3s  %3s  %3s  %3s  %5s  %5s  %6s  %6s %5s'%('Owner','W-L',
-    #      '# (Change)','Power','LSQ','Colley','2SD','AWP','SOS','Luck','Cons','Tier'))
-    #for i,t in enumerate(s_teams):
-    #  delta = int(t.rank.prev) - (i+1)
-    #  pm = '-' if delta < 0 else '+'
-    #  ch = '%s%2d'%(pm, abs(delta)) if delta != 0 else delta
-    #  rec = '%2d-%-2d'%(t.stats.wins,t.stats.losses)
-    #  print('%20s %7s  %-8s  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f %2d'%(t.owner, rec,
-    #        i+1 if ch == 0 else '%-3s(%3s)'%(i+1, ch), t.rank.power,t.rank.lsq,t.rank.col,
-    #        t.rank.dom,t.stats.awp,t.rank.sos,t.rank.luck,t.rank.cons,t.rank.tier))
+    pd.set_option('max_columns', 20)
+    pd.set_option('display.expand_frame_repr', False)
+    # Get team names
+    df_out = (
+      pd.merge(self.df_teams[['team_id', 'firstName', 'lastName']],
+               self.df_ranks, on='team_id')
+      .reset_index(drop=True)
+    )
+    # Get aggregate win pct
+    df_out = (
+      pd.merge(df_out, self.df_season_summary[['team_id', 'agg_wpct', 'wins', 'games', 'points_for', 'points_against']])
+      .sort_values('power', ascending=False)
+      .reset_index(drop=True)
+      .rename({'agg_wpct': 'awp', 'points_for': 'PF', 'points_against': 'PA'}, axis=1)
+    )
+    # Combine names
+    df_out['Team'] = df_out.apply(lambda x: f'{x.get("firstName")} {x.get("lastName")}', axis=1)
+    # Add record
+    df_out['rec'] = df_out.apply(lambda x: f'{int(x.get("wins"))}-{int(x.get("games"))-int(x.get("wins"))}', axis=1)
+    # Convert changes to strings
+    df_out[['d_power', 'd_overall', 'd_tier']] = (
+      df_out[['d_power', 'd_overall', 'd_tier']]
+      .applymap(lambda x: f'(+{abs(x)}) ' if x > 0 else f'(-{abs(x)}) ' if x < 0 else '')
+    )
+    # Add in string changes next to rankings
+    df_out['#'] = df_out.get('power').rank(ascending=False).astype(int)
+    df_out['#'] = df_out.apply(lambda x: f'{x.get("d_power")}{x.get("#"):2}', axis=1)
+    df_out['overall'] = df_out.apply(lambda x: f'{x.get("d_overall")}{x.get("overall"):2}', axis=1)
+    df_out['tier'] = df_out.apply(lambda x: f'{x.get("d_tier")}{x.get("tier")}', axis=1)
+    print(df_out[['Team', 'rec', '#', 'power', 'lsq', 'col', 'dom', 'awp',
+                  'sos', 'luck', 'cons', 'tier', 'PF', 'PA', 'overall']].to_string(index=False))
 
-  def get_power_rankings(self, week=-1):
+  def get_power_rankings(self):
     """
     Get the power rankings for the specified week
     Configuration for all the metrics is passed via config
@@ -254,22 +282,22 @@ class League:
       w_cons = self.config['Power'].getfloat('w_cons', 0.10),
       w_strk = self.config['Power'].getfloat('w_strk', 0.06)
     )
-    self.print_rankings()
-    # Calculate change from previous week
-    self._save_ranks(getPrev = self.config['Tiers'].getboolean('getPrev', False))
     # Get Tiers
     self._calc_tiers(
       bw        = self.config['Tiers'].getfloat('bw', 0.09),
       order     = self.config['Tiers'].getint('order', 4),
       show_plot = self.config['Tiers'].getboolean('show_plot', False)
     )
+    # Calculate change from previous week
+    self._save_ranks()
     # Print Sorted team
     self.print_rankings()
     # Calc the playoff odds
-    do_playoffs = self.config['Playoffs'].getboolean('doPlayoffs',False)
-    if do_playoffs:
-      calc_playoffs(self.teams, self.year, self.week, self.settings, 
-                    n_sims = self.config['Playoffs'].getint('num_simulations', 200000))
+    # FIXME not updated yet
+    #do_playoffs = self.config['Playoffs'].getboolean('doPlayoffs',False)
+    #if do_playoffs:
+    #  calc_playoffs(self.teams, self.year, self.week, self.settings,
+    #                n_sims = self.config['Playoffs'].getint('num_simulations', 200000))
 
   def make_website(self):
     """Creates website based on current power rankings.
