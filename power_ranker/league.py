@@ -11,13 +11,11 @@ from .get_season_data import(
   build_schedule_table,
   build_season_summary_table
 )
-from .team import Team
 from .settings import Settings
 from .two_step_dom import get_two_step_dom_ranks
-from .lsq import LSQ
+from .lsq import get_ranks_lsq
 from .colley import get_colley_ranks
 from .utils import (
-  fix_teamId,
   calc_sos,
   calc_luck,
   calc_cons,
@@ -25,7 +23,6 @@ from .utils import (
   save_ranks,
   calc_tiers,
   fetch_page)
-from .rank import norm_by_zscore, norm_rank, norm_by_max
 from .web.radar import make_radar
 from .web.website import generate_web
 from .web.power_plot import make_power_plot
@@ -37,8 +34,7 @@ __author__ = 'Ryne Carbone'
 logger = logging.getLogger(__name__)
 
 
-#___________________
-class League(object):
+class League:
   """Given ESPN public league information, collects stats and creates
      team objects for all teams"""
   def __init__(self, config_file='default_config.cfg'):
@@ -100,43 +96,41 @@ class League(object):
       f'week: {self.week}, cookies: {self.cookies}'
     )
 
-  def sorted_teams(self, sort_key='teamId', reverse=False):
-    """Returns league teams sorted by the string <sort_key>
-       and optionally in <reverse> order"""
-    return sorted(self.teams, key=lambda x: attrgetter(sort_key)(x), reverse=reverse)
-
   def _scrape_season(self, data):
     """Scrape data for season"""
     self.df_teams = build_team_table(data)
     self.df_schedule = build_schedule_table(data)
-    self.df_season_summary = build_season_summary_table(data, self.week)
-    self.df_ranks = self.df_teams[['team_id']]
+    self.df_season_summary = build_season_summary_table(df_schedule=self.df_schedule, week=self.week)
+    self.df_ranks = self.df_teams[['team_id']].reset_index(drop=True)
 
   def _scrape_settings(self, data):
     """Scrape league settings info"""
     self.settings = Settings(data)
 
   def _calc_dom(self, sq_weight=0.25, decay_penalty=0.5):
-    """Calculate the two step dominance rankings
-    FIXME should I normalize here or later for all stats?
-    """
+    """Calculate the two step dominance rankings"""
     dom = get_two_step_dom_ranks(self.df_schedule, self.week, sq_weight=sq_weight, decay_penalty=decay_penalty)
     self.df_ranks = (
       pd.merge(self.df_ranks, dom, on='team_id', how='left')
       .sort_values('team_id')
       .reset_index(drop=True)
     )
-    #norm_rank(teams_sorted, 'dom')
-    #norm_by_max(teams_sorted, 'dom')
-  
+
   def _calc_lsq(self, B_w=30., B_r=35., dS_max=35., beta_w=2.2, show_plot=False):
     """Calculate rankings based on iterative lsq method"""
-    teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
-    lsq = LSQ(self.year, self.week, B_w=B_w, B_r=B_r, dS_max=dS_max, beta_w=beta_w, show=show_plot)
-    lsq.get_ranks(teams_sorted)
-    #norm_rank(teams_sorted, 'lsq')
-    norm_by_max(teams_sorted, 'lsq')
-    
+    lsq = get_ranks_lsq(
+      df_teams=self.df_teams,
+      df_schedule=self.df_schedule,
+      year=self.year,
+      week=self.week,
+      B_w=B_w, B_r=B_r, dS_max=dS_max, beta_w=beta_w, show=show_plot
+    )
+    self.df_ranks = (
+      pd.merge(self.df_ranks, lsq, on='team_id', how='left')
+      .sort_values('team_id')
+      .reset_index(drop=True)
+    )
+
   def _calc_colley(self, printMatrix=False):
     """Calculates and assigns colley rankings for each team in the league"""
     col = get_colley_ranks(df_schedule=self.df_schedule, week=self.week, printMatrix=printMatrix)
@@ -145,33 +139,49 @@ class League(object):
       .sort_values('team_id')
       .reset_index(drop=True)
     )
-    #norm_rank(teams_sorted, 'col')
-    #norm_by_max(teams_sorted, 'col')
 
   def _calc_sos(self, rank_power=2.37):
     """Calculates the strength of schedule based on lsq rankings"""
-    teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
-    calc_sos(teams_sorted, self.week, rank_power=rank_power)
-    norm_by_max(teams_sorted, 'sos')
+    self.df_ranks = calc_sos(
+      df_schedule=self.df_schedule,
+      df_ranks=self.df_ranks,
+      week=self.week,
+      rank_power=rank_power
+    )
 
   def _calc_luck(self, awp_weight=0.5):
     """Calculates the luck index"""
-    teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
-    calc_luck(teams_sorted, self.week, awp_weight=awp_weight)
-    norm_by_max(teams_sorted, 'luck')
+    luck = calc_luck(
+      df_schedule=self.df_schedule,
+      df_season_summary=self.df_season_summary,
+      week=self.week,
+      awp_weight=awp_weight
+    )
+    self.df_ranks = (
+      pd.merge(self.df_ranks, luck, on='team_id', how='left')
+      .sort_values('team_id')
+      .reset_index(drop=True)
+    )
 
-  def _calc_cons(self, cons_weight=0.5):
+  def _calc_cons(self):
     """Calculate the consistency index"""
-    teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
-    calc_cons(teams_sorted, self.week)
-    norm_by_max(teams_sorted, 'cons')
+    self.df_ranks = calc_cons(self.df_ranks, self.df_schedule, self.week)
 
-  def _calc_power(self, w_dom=0.18, w_lsq=0.18, w_col=0.18, w_awp=0.18, 
-                 w_sos=0.06, w_luck=0.06, w_cons=0.10, w_strk=0.06):
+  def _calc_power(self, w_dom=0.18, w_lsq=0.18, w_col=0.18, w_awp=0.18,
+                  w_sos=0.06, w_luck=0.06, w_cons=0.10, w_strk=0.06):
     """Calculates the final weighted power index"""
-    teams_sorted = self.sorted_teams(sort_key='teamId', reverse=False)
-    calc_power(teams_sorted, self.week, w_dom=w_dom, w_lsq=w_lsq, w_col=w_col,
-               w_awp=w_awp, w_sos=w_sos, w_luck=w_luck, w_cons=w_cons, w_strk=w_strk)
+    self.df_ranks = calc_power(
+      df_ranks=self.df_ranks,
+      df_season_summary=self.df_season_summary,
+      w_dom=w_dom,
+      w_lsq=w_lsq,
+      w_col=w_col,
+      w_awp=w_awp,
+      w_sos=w_sos,
+      w_luck=w_luck,
+      w_cons=w_cons,
+      w_strk=w_strk
+    )
 
   def _save_ranks(self, getPrev=True):
     """Save the power rankings, optionally calculate change from previous week"""
@@ -186,18 +196,23 @@ class League(object):
   def print_rankings(self):
     """Print table of metrics and final power rankings"""
     print(f'\nWeek {self.week} Power Rankings\n======================')
-    # Sort teams based on power ranking
-    s_teams = self.sorted_teams(sort_key='rank.power', reverse=True)
-    print('%20s %7s  %8s  %3s  %3s  %3s  %3s  %5s  %5s  %6s  %6s %5s'%('Owner','W-L',
-          '# (Change)','Power','LSQ','Colley','2SD','AWP','SOS','Luck','Cons','Tier'))
-    for i,t in enumerate(s_teams):
-      delta = int(t.rank.prev) - (i+1)
-      pm = '-' if delta < 0 else '+' 
-      ch = '%s%2d'%(pm, abs(delta)) if delta != 0 else delta 
-      rec = '%2d-%-2d'%(t.stats.wins,t.stats.losses)
-      print('%20s %7s  %-8s  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f %2d'%(t.owner, rec,
-            i+1 if ch == 0 else '%-3s(%3s)'%(i+1, ch), t.rank.power,t.rank.lsq,t.rank.col,
-            t.rank.dom,t.stats.awp,t.rank.sos,t.rank.luck,t.rank.cons,t.rank.tier))
+    # FIXME, add in deltas, change order, add agg wpct, tier
+    pd.set_option('precision', 3)
+    pd.set_option('max_columns', 15)
+    print(pd.merge(self.df_teams[['team_id', 'firstName', 'lastName']],
+                   self.df_ranks, on='team_id')
+          .sort_values('power', ascending=False)
+          .reset_index(drop=True))
+    #print('%20s %7s  %8s  %3s  %3s  %3s  %3s  %5s  %5s  %6s  %6s %5s'%('Owner','W-L',
+    #      '# (Change)','Power','LSQ','Colley','2SD','AWP','SOS','Luck','Cons','Tier'))
+    #for i,t in enumerate(s_teams):
+    #  delta = int(t.rank.prev) - (i+1)
+    #  pm = '-' if delta < 0 else '+'
+    #  ch = '%s%2d'%(pm, abs(delta)) if delta != 0 else delta
+    #  rec = '%2d-%-2d'%(t.stats.wins,t.stats.losses)
+    #  print('%20s %7s  %-8s  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f  %.3f %2d'%(t.owner, rec,
+    #        i+1 if ch == 0 else '%-3s(%3s)'%(i+1, ch), t.rank.power,t.rank.lsq,t.rank.col,
+    #        t.rank.dom,t.stats.awp,t.rank.sos,t.rank.luck,t.rank.cons,t.rank.tier))
 
   def get_power_rankings(self, week=-1):
     """
@@ -239,6 +254,7 @@ class League(object):
       w_cons = self.config['Power'].getfloat('w_cons', 0.10),
       w_strk = self.config['Power'].getfloat('w_strk', 0.06)
     )
+    self.print_rankings()
     # Calculate change from previous week
     self._save_ranks(getPrev = self.config['Tiers'].getboolean('getPrev', False))
     # Get Tiers
