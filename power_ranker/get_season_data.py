@@ -7,6 +7,9 @@ FIXME maybe want to sort by team_id for all built tables?
 
 import logging
 import pandas as pd
+import numpy as np
+from itertools import *
+from operator import itemgetter
 
 __author__ = 'Ryne Carbone'
 
@@ -136,6 +139,7 @@ def build_season_summary_table(df_schedule, week):
     df_sum['games'] = df_sum.apply(lambda x: x.get('home_games') + x.get('away_games'), axis=1)
     df_sum['points_for'] = df_sum.apply(lambda x: x.get('home_points_for') + x.get('away_points_for'), axis=1)
     df_sum['points_against'] = df_sum.apply(lambda x: x.get('home_points_against') + x.get('away_points_against'), axis=1)
+    df_sum['streak'] = df_sum.apply(lambda x: calc_streak(df_schedule, x.get('team_id'), week), axis=1)
     # Add aggregate wins to the season summary
     agg_wins = calc_agg_wins(df_schedule, week)
     df_sum = pd.merge(df_sum, agg_wins, on='team_id')
@@ -179,4 +183,40 @@ def calc_agg_wins(df_schedule, week):
     # Calculate winning percentage
     agg_wins['agg_wpct'] = agg_wins['agg_wins'] / agg_wins['agg_games']
     return agg_wins
+
+
+def calc_streak(df_schedule, team, week):
+    """Calculate current winning/losing streak
+
+    :param df_schedule: data frame with scores and team id for each game
+    :param team: team id
+    :param week: current week
+    :return: returns current streak for team
+    """
+    l_mov = (
+        df_schedule
+        .query(f'(home_id=={team} | away_id=={team}) & (matchupPeriodId <= {week} & winner != "UNDECIDED")')
+        .sort_values('matchupPeriodId')
+        .apply(lambda x:
+               x.home_total_points - x.away_total_points if x.home_id == team else
+               x.away_total_points - x.home_total_points, axis=1).values
+    )
+    # Break up MOV list into consecutive streaks (i.e. same sign)
+    l_streaks = get_streaks(l_mov=l_mov)
+    # Grab most recent streak, return length (and sign)
+    current_streak = l_streaks[-1]
+    return len(current_streak)*np.sign(current_streak[0])
+
+
+def get_streaks(l_mov):
+    """Break up list of MOV into streaks
+
+    Algorithm from: https://stackoverflow.com/questions/38708692/identify-if-list-has-consecutive-elements-that-are-equal-in-python
+    :param l_mov: list of margin of victory
+    :return: list of streaks
+    """
+    return [list(map(itemgetter(1), g))
+            for k, g
+            in groupby(enumerate(l_mov), lambda x: np.sign(x[1]))]
+
 
