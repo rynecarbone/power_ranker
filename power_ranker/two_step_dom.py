@@ -52,6 +52,8 @@ def calc_wins_matrix(df_schedule, week, decay_penalty):
     #   y: opponent id
     #   v: (1-decay) + decay * week_i/current_week if team wins else 0
     # Note: takes care of repeat (x,y) by summing v as expected
+    max_id = max(df_schedule.get('away_id').max(),
+                 df_schedule.get('home_id').max())
     df_schedule_coo = (
       df_schedule
       .query(f'matchupPeriodId<={week} & winner!="UNDECIDED"')
@@ -73,12 +75,14 @@ def calc_wins_matrix(df_schedule, week, decay_penalty):
     wins_matrix = coo_matrix(
       (df_schedule_coo.get('away_value').values,
        (df_schedule_coo.get('away_id').values,
-        df_schedule_coo.get('home_id').values))
+        df_schedule_coo.get('home_id').values)
+       ), shape=(max_id + 1, max_id + 1)
     )
     wins_matrix += coo_matrix(
       (df_schedule_coo.get('home_value').values,
        (df_schedule_coo.get('home_id').values,
-        df_schedule_coo.get('away_id').values))
+        df_schedule_coo.get('away_id').values)
+       ), shape=(max_id+1, max_id+1)
     )
     return wins_matrix
 
