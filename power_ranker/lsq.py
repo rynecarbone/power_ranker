@@ -204,8 +204,10 @@ def plot_save_rank(df_ranks, df_teams, year, week, show=False):
     .groupby(['team_id'])[['value']]
     .agg(lambda x: np.tanh(np.mean(x) / 75.))
     .reset_index()
-    .rename({'value': 'lsq_rank'}, axis=1)
+    .rename({'value': 'lsq'}, axis=1)
   )
+  # Normalize by max score
+  df_final_ranks['lsq'] = df_final_ranks.get('lsq') / df_final_ranks.get('lsq').max()
   return df_final_ranks
 
 
