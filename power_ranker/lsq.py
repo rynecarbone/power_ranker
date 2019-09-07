@@ -13,7 +13,8 @@ from scipy.optimize import lsq_linear
 from scipy.sparse import coo_matrix
 import numpy as np
 import pandas as pd
-from plotnine import ggplot, aes, geom_line, geom_label,theme_bw, labs, guides
+from plotnine import ggplot, aes, geom_line, geom_label, theme_bw, labs, guides
+import warnings
 
 __author__ = 'Ryne Carbone'
 
@@ -92,10 +93,14 @@ def calc_ranks_lsq_iter(df_teams, N_g, R_g, prev_ranks=None, beta_w=2.2, initial
     sig_g = calc_sig_g(N_g=N_g, df_ranks=prev_ranks, beta_w=beta_w)
   # Calculate the coefficient vector
   b = R_g/sig_g
+  # Get dimensions for matrix
+  max_id = max(N_g.get('away_id').max(),
+               N_g.get('home_id').max())
+  n_games = N_g.get('home_id').size
   # Calculate the matrix using COO formatted matrix (n_games x n_teams dimensions)
   # Elements are +/- 1/sig_g if team is home/away else 0
-  home_coo = coo_matrix((1/sig_g, (N_g.home_id.index, N_g.home_id.values)))
-  away_coo = coo_matrix((-1/sig_g, (N_g.away_id.index, N_g.away_id.values)))
+  home_coo = coo_matrix((1/sig_g, (N_g.home_id.index, N_g.home_id.values)), shape=(n_games, max_id+1))
+  away_coo = coo_matrix((-1/sig_g, (N_g.away_id.index, N_g.away_id.values)), shape=(n_games, max_id+1))
   A = home_coo + away_coo
   # Solve for the rankings
   res = lsq_linear(A=A, b=b, bounds=(30, 130))
@@ -195,7 +200,10 @@ def plot_save_rank(df_ranks, df_teams, year, week, show=False):
   out_dir = Path(f'output/{year}/week{week}')
   out_dir.mkdir(parents=True, exist_ok=True)
   out_name = out_dir / 'lsq_iter_rankings.png'
+  # plotnine is throwing too many warnings
+  warnings.filterwarnings('ignore')
   p.save(out_name, width=9, height=6, dpi=300)
+  warnings.filterwarnings('default')
   logger.info(f'Saved LSQ rankings plot to local file: {out_name.resolve()}')
   # Average last 70 elements to get final rank
   df_final_ranks = (
