@@ -2,7 +2,6 @@
 import sys
 import logging
 import argparse
-import shutil
 import os.path
 import getpass
 import pkg_resources
@@ -97,7 +96,7 @@ def get_private_cookies():
     :return: cookies and id for accessing private league data
     """
   user = input('Username: ')
-  pw   = getpass.getpass('Password: ')
+  pw = getpass.getpass('Password: ')
   pl = PrivateLeague(user, pw)
   pl.authorize()
   s2, swid = pl.get_cookies()
