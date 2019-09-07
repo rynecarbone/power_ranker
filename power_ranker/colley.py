@@ -24,9 +24,11 @@ def get_colley_ranks(df_schedule, week, printMatrix=False):
     colley_matrix = build_colley_matrix(df_schedule=df_schedule, week=week, printMatrix=printMatrix)
     colley_b = build_colley_intercept(df_schedule=df_schedule, week=week)
     # Solve the matrix equation
-    colley_ranks = pd.DataFrame(solve(colley_matrix, colley_b), columns=['col_rank'])
+    colley_ranks = pd.DataFrame(solve(colley_matrix, colley_b), columns=['col'])
     # Add in team_id
     colley_ranks['team_id'] = colley_matrix.index
+    # Normalize by max rank
+    colley_ranks['col'] = colley_ranks.get('col') / colley_ranks.get('col').max()
     return colley_ranks
 
 
