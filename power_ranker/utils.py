@@ -11,6 +11,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 from scipy.signal import argrelmin
+from plotnine import ggplot, aes, geom_line, geom_vline, theme_bw, labs
+import warnings
 from .exception import (PrivateLeagueException,
                         InvalidLeagueException,
                         UnknownLeagueException, )
@@ -167,100 +169,114 @@ def calc_power(df_ranks, df_season_summary, w_dom=0.18, w_lsq=0.18, w_col=0.18,
     w_strk * discount_streak(df_season_summary.loc[df_season_summary.team_id == x.team_id, 'streak'].values[0])
     , axis=1
   )
-  # Normalize with hyperbolic tangent #FIXME should this be configurable too?
+  # Normalize with hyperbolic tangent
   df_ranks['power'] = 100.*np.tanh(df_ranks['power']/0.5)
   return df_ranks
 
 
-def calc_tiers(teams, year, week, bw=0.09, order=4, show=False):
-  """Calculate 3-5 tiers using Gaussian Kernal Density"""
+def calc_tiers(df_ranks, year, week, bw=0.09, order=4, show=False):
+  """Calculate 3-5 tiers using Gaussian Kernel Density Estimation
+
+  :param df_ranks: data frame with power rankings for each team
+  :param year: current year
+  :param week: current week
+  :param bw: bandwidth for KDE
+  :param order: order parameter for KDE
+  :param show: flag to show plot
+  :return: None
+  """
   logger.info('Calculating tiers for power rankings')
-  # Store rankings in list
-  ranks = [t.rank.power for t in teams]
-  # Calculate the Kernal Density Estimation
-  kde = gaussian_kde(ranks, bw_method=bw)
-  # Make plot
-  x_grid = np.linspace(min(ranks)-10., max(ranks)+10., len(ranks)*10)
-  f2 = plt.figure(figsize=(10,6))
-  plt.plot(x_grid, kde(x_grid))
-  if show: plt.show()
+  # Estimate the kernel using power rankings
+  kde = gaussian_kde(df_ranks.get('power'), bw_method=bw)
+  # Create grid of points for plot
+  x_grid = np.linspace(
+    df_ranks.get('power').min() - 10.,
+    df_ranks.get('power').max() + 10,
+    df_ranks.get('power').size * 10)
+  # Calculate densities for each grid point for plotting
+  df_kde = pd.DataFrame(dict(x=x_grid, kde=kde(x_grid)))
+  # Calculate relative minimums to determine tiers
+  rel_min = pd.DataFrame(dict(rel_min=x_grid[argrelmin(kde(x_grid), order=order)[0]]))
+  # Only keep 5 tiers
+  tier_mins = sorted(rel_min.rel_min.values, reverse=True)[:4]
+  # Find position of power rank when added to list of minimums to get tier
+  df_ranks['tier'] = df_ranks.apply(
+    lambda x: sorted(tier_mins+[x.power], reverse=True).index(x.power)+1, axis=1
+  )
+  # Plot KDE and overlay tiers and actual power rankings as vertical lines
+  tier_plot = (
+    ggplot(aes(x='x', y='kde'), data=df_kde) +
+    geom_line(size=1.5) +
+    geom_vline(aes(xintercept='rel_min'), data=rel_min, color='red', alpha=0.7) +
+    geom_vline(aes(xintercept='power'), data=df_ranks, color='blue', linetype='dashed', alpha=0.4) +
+    theme_bw() +
+    labs(x='Power Rankings',
+         y=f'KDE (bw: {bw}, order: {order})',
+         title=f'Tiers for week {week}')
+  )
+  # Show plot
+  if show:
+    tier_plot.draw()
   # Create directory if it doesn't exist to save plot
   out_dir = Path(f'output/{year}/week{week}')
   out_dir.mkdir(parents=True, exist_ok=True)
   out_name = out_dir / 'tiers.png'
-  f2.savefig(out_name)
-  plt.close()
-  logger.info(f'Saved tiers plot to local file {out_name.resolve()}')
-  # Find minima to define tiers, separted by at least +/- order
-  minima = x_grid[ argrelmin( kde(x_grid), order=order)[0] ]
-  s_min = sorted(minima, reverse=True)
-  tier = 1
-  # Build tiers from minima
-  for t in teams:
-    # lowest tier
-    if tier > len(s_min):
-      tier += 0
-    # if rank below current minima, create new tier
-    elif t.rank.power < s_min[tier-1]:
-      if tier < 5: tier += 1
-    # Save tier
-    t.rank.tier =  tier
+  # Save plot (plotnine is throwing too many warnings...)
+  warnings.filterwarnings('ignore')
+  tier_plot.save(out_name, width=9, height=6, dpi=300)
+  warnings.filterwarnings('default')
+  logger.info(f'Saved Tiers plot to local file: {out_name.resolve()}')
+  return df_ranks
 
 
-def save_ranks(teams, year, week, getPrev=True):
-  """Save the power rankings to a file,
-    optionally retreive previous week's rankings"""
-  # Save power rankings (teamId:rank)
-  new_dir = Path(f'output/{year}/week{week}')
-  new_dir.mkdir(parents=True, exist_ok=True)
-  new_name = new_dir / 'ranks_power.txt'
-  f_new = open(new_name, 'w')
-  # Write to file (teams should be passed sorted by ranking)
-  for i, t in enumerate(teams):
-    f_new.write('%s:%s\n'%(t.teamId, i+1))
-  f_new.close()
-  logger.info(f'Saved power rankings (teamId:rank) to local file: {new_name.resolve()}')
-  # Save ESPN overall rankings teamId:rank
-  teams_sorted_overall = sorted(teams, key=lambda x: (x.stats.wins, x.stats.pointsFor), reverse=True)
-  new_name = new_dir / 'ranks_overall.txt'
-  f_new = open(new_name, 'w')
-  # Write to file (sorted by ESPN rankings)
-  for i, t in enumerate(teams_sorted_overall):
-    f_new.write('%s:%s\n'%(t.teamId, i+1))
-    t.rank.overall = i+1
-  f_new.close()
-  logger.info(f'Saved overall ESPN rankings (teamId:rank) to local file: {new_name.resolve()}')
-  # Exit if not comparing to previous rankings
-  if not getPrev: 
-    return
-  # Get prevoius power rankings
-  old_dir = Path(f'output/{year}/week{week-1}')
-  old_dir.mkdir(parents=True, exist_ok=True)
-  old_name = old_dir / 'ranks_power.txt'
-  f_old = open(old_name, 'r')
-  for line in f_old:
-    team_rank = (line.strip()).split(':')
-    t_id = team_rank[0]
-    t_rk = team_rank[1]
-    # Sorted by this weeks power rankings
-    for t in teams:
-      if int(t.teamId) == int(t_id):
-        t.rank.prev = t_rk
-  f_old.close()
-  logger.info(f'Read previous power rankings from local file: {old_name.resolve()}')
-  # Get Previous overall rankings
-  old_name = old_dir / 'ranks_overall.txt'
-  f_old = open(old_name, 'r')
-  for line in f_old:
-    team_rank = (line.strip()).split(':')
-    t_id = team_rank[0]
-    t_rk = team_rank[1]
-    # sorted by this week overall
-    for t in teams_sorted_overall:
-      if int(t.teamId) == int(t_id):
-        t.rank.prev_overall = t_rk
-  f_old.close()
-  logger.info(f'Read previous overall ESPN rankings from local file: {old_name.resolve()}')
+def save_ranks(df_ranks, year, week):
+  """Save power rankings and tiers, optionally retrieve previous weeks rankings
+
+  :param df_ranks: data frame with overall, power, and tier rankings
+  :param year: current year
+  :param week: current week
+  :return: data frame with change in rankings
+  """
+  # Define paths and file names
+  save_dir = Path(f'output/{year}')
+  save_dir.mkdir(parents=True, exist_ok=True)
+  f_rankings = save_dir / 'weekly_rankings.csv'
+  # Select columns to save
+  df_curr_ranks = df_ranks[['team_id', 'overall', 'power', 'tier']].reset_index(drop=True)
+  # Convert power points to rank, add week column
+  df_curr_ranks['power'] = df_curr_ranks.get('power').rank(ascending=False).astype(int)
+  df_curr_ranks['week'] = week
+  if f_rankings.is_file():
+    logger.info(f'Reading previous tiers and rankings from {f_rankings.resolve()}')
+    # If there are saved rankings, read them in for all previous ranks
+    df_ranks_history = pd.read_csv(f_rankings, dtype=dict(team_id=int, overall=int, power=int, tier=int, week=int))
+    df_ranks_history = df_ranks_history.query(f'week < {week}')
+    df_ranks_history = pd.concat([df_ranks_history, df_curr_ranks])
+    # Write out appended ranks
+    df_ranks_history.to_csv(f_rankings, index=False)
+    # Get previous ranks, order current and previous by team id
+    prev_ranks = (
+      df_ranks_history
+      .query(f'week == {week-1}')
+      .sort_values('team_id', ascending=True)
+      .reset_index(drop=True))
+    df_curr_ranks = df_curr_ranks.sort_values('team_id', ascending=True)
+    # If number of rows don't match, don't return ranking changes
+    if prev_ranks.team_id.size != df_curr_ranks.team_id.size:
+      logger.warning(f'File does not have rankings from previous week {week-1}')
+      return None
+    # Calculate change in rankings (lower is better so +1 means you go from 2->1)
+    df_curr_ranks[['d_overall', 'd_power', 'd_tier']] = (
+            prev_ranks[['overall', 'power', 'tier']] - df_curr_ranks[['overall', 'power', 'tier']]
+    )
+    return df_curr_ranks[['team_id', 'd_overall', 'd_power', 'd_tier']]
+  else:
+    # If no previous rankings, just create a new file with current rankings
+    df_ranks_history = df_curr_ranks
+    # Write out appended ranks
+    df_ranks_history.to_csv(f_rankings, index=False)
+    # Don't return change in rankings
+    return None
 
 
 def fetch_page(endpoint, params, cookies, use_soup=True, use_json=False):
