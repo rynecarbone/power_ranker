@@ -40,7 +40,6 @@ settings to achieve the appropriate number of tiers.
 
 Parameter |What value to enter
 ----------|------------------
-`getPrev`| Set to `False` for the first week of the rankings (no previous rankings to retreive). For all subsequent weeks, set to `True`. Be sure that you run the rankings in the same directory as previous weeks, the tool will search the previous output for the saved rankings. This setting is important to make the arrows on the website reflect accurate movement in the power rankings
 `bw`| This is the bandwidth of the tier algorithm. A smaller value will create finer differentiation between power scores to define the tiers. If the value is too small, every team will be it's own tier. You can see the distribution and output of the tiers by locating the file `output/<year>/week<X>/tiers.png`.
 `order`|This roughly determines the minimum separation between tiers. If you find lowering the bandwidth doesn't create enough tiers, try lowering the order, and vice versa
 `show_plot`|This will display the tiers plot when running the power rankings via command line
