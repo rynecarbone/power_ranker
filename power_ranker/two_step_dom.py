@@ -25,10 +25,11 @@ def get_two_step_dom_ranks(df_schedule, week, sq_weight=0.25, decay_penalty=0.5)
     wins_matrix = calc_wins_matrix(df_schedule, week, decay_penalty)
     dom_matrix = (1-sq_weight)*wins_matrix + sq_weight*(wins_matrix@wins_matrix)
     # For each row, sum values across the columns
-    dom_ranks = pd.DataFrame(dom_matrix.sum(axis=1), columns=['dom_rank'])
+    dom_ranks = pd.DataFrame(dom_matrix.sum(axis=1), columns=['dom'])
     # Add in team_id so we can join later
     dom_ranks['team_id'] = dom_ranks.index
-    #pd.merge(df_teams, dom_ranks, on='team_id', how='inner')
+    # Normalize by max dominance score
+    dom_ranks['dom'] = dom_ranks.get('dom')  / dom_ranks.get('dom').max()
     return dom_ranks
 
 
