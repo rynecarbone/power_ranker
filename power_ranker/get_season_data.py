@@ -140,6 +140,13 @@ def build_season_summary_table(df_schedule, week):
     df_sum['points_for'] = df_sum.apply(lambda x: x.get('home_points_for') + x.get('away_points_for'), axis=1)
     df_sum['points_against'] = df_sum.apply(lambda x: x.get('home_points_against') + x.get('away_points_against'), axis=1)
     df_sum['streak'] = df_sum.apply(lambda x: calc_streak(df_schedule, x.get('team_id'), week), axis=1)
+    df_sum['overall'] = (
+        df_sum[['wins', 'points_for']]
+        .apply(tuple, axis=1)
+        .rank(method='dense', ascending=False)
+        .astype(int)
+        .reset_index(drop=True)
+    )
     # Add aggregate wins to the season summary
     agg_wins = calc_agg_wins(df_schedule, week)
     df_sum = pd.merge(df_sum, agg_wins, on='team_id')
