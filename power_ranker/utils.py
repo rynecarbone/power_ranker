@@ -7,6 +7,7 @@ import logging
 import requests
 from bs4 import BeautifulSoup
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
 from scipy.signal import argrelmin
@@ -19,95 +20,156 @@ __author__ = 'Ryne Carbone'
 logger = logging.getLogger(__name__)
 
 
-def fix_teamId(teams):
-  """Sometimes teamIds skip numbers if people from your league have quit,
-    For now, just redefining teamId by number of teams,
-    Using that to also fix opponentId.
-    Teams should be passed, ordered by ascending teamId"""
-  logger.debug('Reordering teamId incase league members have left between seasons')
-  old = [] # store old id to find in schedule
-  new = [] # store new ids to replace
-  for i,t in enumerate(teams):
-    old.append(t.teamId)
-    new.append(i+1)
-    t.teamId = i+1 
-  # Replace opponent id in schedule
-  for t in teams:
-    for w,o in enumerate(t.stats.schedule):
-      new_opp = new[old.index(o)] 
-      t.stats.schedule[w] = new_opp 
+def calc_sos(df_schedule, df_ranks, week, rank_power=2.37):
+  """Calculate the strength of schedule based on lsq rank
+
+  Normalize SOS by max SOS in league
+  :param df_schedule: data frame with team ids for each matchup
+  :param df_ranks: data frame with rankings from lsq metric
+  :param week: current week
+  :param rank_power: exponent to use in sos calculation
+  :return: data frame of rankings with sos added
+  """
+  sos = lambda iteam, iweek: (
+    df_schedule
+    .query(f'(home_id=={iteam} | away_id=={iteam}) & (matchupPeriodId <= {iweek} & winner != "UNDECIDED")')
+    .apply(lambda x: x.home_id if x.away_id == iteam else x.away_id, axis=1)
+    .apply(lambda x: df_ranks.loc[df_ranks.team_id == x, 'lsq'].values[0])
+    .agg(lambda x: sum(x ** rank_power) / len(x))
+  )
+  df_ranks['sos'] = df_ranks.get('team_id').apply(lambda x: sos(x, week))
+  # Normalize SOS by max SOS calculated
+  df_ranks['sos'] = df_ranks.get('sos') / df_ranks.get('sos').max()
+  return df_ranks
 
 
-def calc_sos(teams, week, rank_power=2.37):
-  """Calculates the strength of schedule,
-     based on the lsq rank"""
-  # Find avg of opponent rankings
-  logger.debug(f'Calculating strength of schedule with rank_power: {rank_power}')
-  for t in teams:
-    rank_i = 0
-    for w, o in enumerate(t.stats.schedule[:week]):
-      rank_i += o.rank.lsq**rank_power
-    t.rank.sos = rank_i/float(week)
+def calc_luck(df_season_summary, df_schedule, week, awp_weight=0.5):
+  """Calculate luck ranking
+
+  Takes into account ratio of wins to aggregate wins and ratio
+  of opponents average score to opponents week score.
+  Higher luck ranking boosts un-lucky teams
+
+  :param df_season_summary: data frame with win pct, agg win pct and team id
+  :param df_schedule: data frame with scores for each matchup
+  :param week: current week
+  :param awp_weight: relative weight between awp ratio and opp score ratio
+  :return: data frame with luck ranking
+  """
+  # Calculate ratio of wpct to aggregate wpct (Add .01 to num/denom to guard against shitty teams)
+  df_luck = df_season_summary.apply(
+    lambda x: pd.Series({'team_id': x.team_id,
+                         'awp_ratio': (0.01+x.wins/x.games)/(0.01+x.agg_wpct)}),
+    axis=1)
+  df_luck['opp_ratio'] = df_luck.apply(lambda x: get_opp_score_ratio(df_schedule, x.team_id, week), axis=1)
+  # Calculate the weighted sum of awp ratio and opp score ratio
+  df_luck['luck_ind'] = df_luck.apply(lambda x: x.awp_ratio*awp_weight + x.opp_ratio*(1-awp_weight), axis=1)
+  # Luck ranking is the inverse -- rewards unlucky teams
+  df_luck['luck'] = df_luck.apply(lambda x: 1. / x.luck_ind, axis=1)
+  # Normalize luck ranking by max ranking
+  df_luck['luck'] = df_luck.get('luck') / df_luck.get('luck').max()
+  return df_luck[['team_id', 'luck']].reset_index(drop=True)
 
 
-def calc_luck(teams, week, awp_weight=0.5):
-  """Calcualtes the luck index, considers:
-    - Aggregate winning pct vs actual winning pct
-    - Opponents score against you, vs their average score"""
-  logger.debug('Calculating luck rankings')
-  avg_score_weight = 1 - awp_weight # weight in the luck index
-  for t in teams:
-    # Calculate the ratio of opponents average score, 
-    # over their week score
-    o_avg_over_score = 0.
-    for w, o in enumerate(t.stats.schedule[:week]):
-      o_avg = sum(o.stats.scores[:week])/float(week)
-      ratio = o_avg/float(o.stats.scores[w])
-      o_avg_over_score += ratio
-    # Normalize to numer of weeks
-    o_avg_over_score /= float(week)
-    # Calculate ratio of your win pct to awg, pad
-    # with 0.01 in num and denom to protect against shitty teams
-    # with divide by 0
-    win_pct = float(t.stats.wins)/float(t.stats.wins+t.stats.losses)
-    wpct_over_awp = (0.01 + float(win_pct) )/(0.01 + float(t.stats.awp) )
-    # Calculate luck index
-    luck_ind = o_avg_over_score*avg_score_weight + wpct_over_awp*awp_weight
-    t.rank.luck = 1./luck_ind
+def get_team_scores(df_schedule, team, week):
+  """Get all scores for a team
+
+  :param df_schedule: data frame with scores and team ids for each game
+  :param team: id for team
+  :param week: current week
+  :return: series of scores for team up to week
+  """
+  return (
+    df_schedule
+    .query(f'(home_id=={team} | away_id=={team}) & (matchupPeriodId <= {week} & winner != "UNDECIDED")')
+    .apply(lambda x: x.home_total_points if x.home_id == team else x.away_total_points, axis=1)
+  )
 
 
-def calc_cons(teams, week):
+def get_opp_score_ratio(df_schedule, team, week):
+  """Calculate ratio of opponents average score to opponents score during week they play you
+
+  :param df_schedule: data frame with scores and team ids for each matchup
+  :param team: team id
+  :param week: current week
+  :return: ratio of opponents average score to score during current week
+  """
+  return (
+    df_schedule
+    .query(f'(home_id=={team} | away_id=={team}) & (matchupPeriodId <= {week} & winner != "UNDECIDED")')
+    .apply(lambda x:
+           pd.Series({'opp_score': x.home_total_points,
+                      'opp_avg_score': get_team_scores(df_schedule, x.home_id, week).mean()})
+           if x.away_id == team else
+           pd.Series({'opp_score': x.away_total_points,
+                      'opp_avg_score': get_team_scores(df_schedule, x.away_id, week).mean()}), axis=1)
+    .apply(lambda x: x.opp_avg_score / x.opp_score, axis=1)
+    .agg(lambda x: x.mean())
+  )
+
+
+def calc_cons(df_ranks, df_schedule, week):
   """Calculate the consistency metric, based on your
-     avg, minimum, and maximum scores"""
+     avg, minimum, and maximum scores
+
+  :param df_ranks: data frame with rankings for each metric
+  :param df_schedule: data frame with scores and team ids for each game
+  :param week: current week
+  :return: data frame with rankings
+  """
   logger.debug('Calculating consistency rankings')
-  for t in teams:
-    t_min = float(min(t.stats.scores[:week]))
-    t_max = float(max(t.stats.scores[:week]))
-    t_avg = float(sum(t.stats.scores[:week]))/float(week)
-    t_cons = t_min+t_max+t_avg 
-    t.rank.cons = t_cons
+  # Get scores for each team
+  df_scores = df_ranks.apply(
+    lambda x: pd.Series({'team_id': x.team_id,
+                         'scores': get_team_scores(df_schedule, x.team_id, week).values})
+    , axis=1)
+  # Add min, max, and average score
+  df_scores['cons'] = df_scores.apply(lambda x: x.scores.min() + x.scores.max() + x.scores.mean(), axis=1)
+  # Normalize by highest cons score
+  df_scores['cons'] = df_scores.get('cons') / df_scores.get('cons').max()
+  # Merge back into rankings data frame
+  df_ranks  = (
+    pd.merge(df_ranks, df_scores[['team_id', 'cons']].reset_index(drop=True), on='team_id', how='left')
+    .sort_values('team_id')
+    .reset_index(drop=True)
+  )
+  return df_ranks
 
 
-def calc_power(teams, week, w_dom=0.18, w_lsq=0.18, w_col=0.18, w_awp=0.18,
-               w_sos=0.06, w_luck=0.06, w_cons=0.10, w_strk=0.06):
-  """Calculates the final power rankings based on input metrics"""
+def calc_power(df_ranks, df_season_summary, w_dom=0.18, w_lsq=0.18, w_col=0.18,
+               w_awp=0.18, w_sos=0.06, w_luck=0.06, w_cons=0.10, w_strk=0.06):
+  """Calculates the final power rankings based on input metrics
+
+  :param df_ranks: data frame with calculated rankings
+  :param df_season_summary: data frame with summarised data for each team
+  :param w_dom: weight for two step dominance ranking
+  :param w_lsq: weight for lsq ranking
+  :param w_col: weight for colley ranking
+  :param w_awp: weight for aggregate winning percentage
+  :param w_sos: weight for strength of schedule ranking
+  :param w_luck: weight for luck ranking
+  :param w_cons: weight for consistency ranking
+  :param w_strk: weight for streak
+  """
   logger.debug('Aggregating all power rankings')
-  for t in teams:
-    dom  = float(t.rank.dom)
-    lsq  = float(t.rank.lsq)
-    col  = float(t.rank.col)
-    awp  = float(t.stats.awp)
-    sos  = float(t.rank.sos)
-    luck = float(t.rank.luck)
-    cons = float(t.rank.cons) 
-    strk = float(t.stats.streak) * int(t.stats.streak_sgn)
-    # Only count streaks longer than one game
-    strk = 0.25*strk if strk > 1. else 0.
-    # Weigh metrics according to the weights
-    power = ( dom*w_dom + lsq*w_lsq + col*w_col + awp*w_awp + sos*w_sos +
-              luck*w_luck + cons*w_cons + strk*w_strk )
-    # Normalize with hyperbolic tangent #FIXME should this be configurable too?
-    t.rank.power = 100*np.tanh(power/0.5)
+  # Only count winning streaks greater than one game
+  discount_streak = lambda streak: 0.25*streak if streak > 1. else 0
+  # Combine all ranks with weights
+  df_ranks['power'] = df_ranks.apply(
+    lambda x:
+    w_dom * x.get('dom') +
+    w_lsq * x.get('lsq') +
+    w_col * x.get('col') +
+    w_awp * df_season_summary.loc[df_season_summary.team_id == x.team_id, 'agg_wpct'].values[0] +
+    w_sos * x.get('sos') +
+    w_luck * x.get('luck') +
+    w_cons * x.get('cons') +
+    w_strk * discount_streak(df_season_summary.loc[df_season_summary.team_id == x.team_id, 'streak'].values[0])
+    , axis=1
+  )
+  # Normalize with hyperbolic tangent #FIXME should this be configurable too?
+  df_ranks['power'] = 100.*np.tanh(df_ranks['power']/0.5)
+  return df_ranks
 
 
 def calc_tiers(teams, year, week, bw=0.09, order=4, show=False):
