@@ -33,8 +33,7 @@ def run_cl_rankings(config_file, private_league=False):
               os.path.join(os.getcwd(), config_file))
   my_league = League(config_file)
   my_league.get_power_rankings()
-  # FIXME Working on updating website code for now
-  #my_league.make_website()
+  my_league.make_website()
 
 
 def set_local_cfg(leagueid, year, week, private_league=False):
