@@ -24,6 +24,9 @@ def build_owner_table(data):
     """
     member_cols = ['firstName', 'lastName', 'id']
     df_members = pd.DataFrame(data.get('members'), columns=member_cols)
+    # Make sure no white spaces
+    df_members['firstName'] = df_members.apply(lambda x: x.get('firstName').strip(), axis=1)
+    df_members['lastName'] = df_members.apply(lambda x: x.get('lastName').strip(), axis=1)
     return df_members
 
 
@@ -138,8 +141,19 @@ def build_season_summary_table(df_schedule, week):
     df_sum['wins'] = df_sum.apply(lambda x: x.get('home_wins') + x.get('away_wins'), axis=1)
     df_sum['games'] = df_sum.apply(lambda x: x.get('home_games') + x.get('away_games'), axis=1)
     df_sum['points_for'] = df_sum.apply(lambda x: x.get('home_points_for') + x.get('away_points_for'), axis=1)
-    df_sum['points_against'] = df_sum.apply(lambda x: x.get('home_points_against') + x.get('away_points_against'), axis=1)
+    df_sum['points_against'] = df_sum.apply(
+        lambda x: x.get('home_points_against') + x.get('away_points_against'), axis=1
+    )
+    # Add max/min scores
+    df_sum['max_score'] = df_sum.apply(
+        lambda x: get_team_scores(df_schedule=df_schedule, team=x.get('team_id'), week=week).max(), axis=1
+    )
+    df_sum['min_score'] = df_sum.apply(
+        lambda x: get_team_scores(df_schedule=df_schedule, team=x.get('team_id'), week=week).min(), axis=1
+    )
+    # Add streak
     df_sum['streak'] = df_sum.apply(lambda x: calc_streak(df_schedule, x.get('team_id'), week), axis=1)
+    # Add overall ESPN ranking
     df_sum['overall'] = (
         df_sum[['wins', 'points_for']]
         .apply(tuple, axis=1)
@@ -227,3 +241,16 @@ def get_streaks(l_mov):
             in groupby(enumerate(l_mov), lambda x: np.sign(x[1]))]
 
 
+def get_team_scores(df_schedule, team, week):
+  """Get all scores for a team
+
+  :param df_schedule: data frame with scores and team ids for each game
+  :param team: id for team
+  :param week: current week
+  :return: series of scores for team up to week
+  """
+  return (
+    df_schedule
+    .query(f'(home_id=={team} | away_id=={team}) & (matchupPeriodId <= {week} & winner != "UNDECIDED")')
+    .apply(lambda x: x.home_total_points if x.home_id == team else x.away_total_points, axis=1)
+  )
