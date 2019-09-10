@@ -22,7 +22,7 @@ from .utils import (
   save_ranks,
   calc_tiers,
   fetch_page)
-from .web.radar import make_radar
+from .web.radar import save_team_radar_plots
 from .web.website import generate_web
 from .web.power_plot import make_power_plot
 from .playoff_odds import calc_playoffs
@@ -306,16 +306,35 @@ class League:
     logger.info('Creating radar plots to summarize team stats')
     Y_LOW  = [float(yl.strip()) for yl in self.config['Radar'].get('Y_LOW').split(',')]
     Y_HIGH = [float(yh.strip()) for yh in self.config['Radar'].get('Y_HIGH').split(',')]
-    for t in self.teams:
-      make_radar(t, self.year, self.week, Y_LOW, Y_HIGH)
+    save_team_radar_plots(
+      df_rank=self.df_ranks,
+      df_season_summary=self.df_season_summary,
+      year=self.year,
+      week=self.week,
+      Y_LOW=Y_LOW,
+      Y_HIGH=Y_HIGH)
     # Make welcome page power plot
-    teams_sorted = self.sorted_teams(sort_key='rank.power', reverse=True)
-    make_power_plot(teams_sorted, self.year, self.week)
+    make_power_plot(
+      df_ranks=self.df_ranks,
+      df_schedule=self.df_schedule,
+      df_teams=self.df_teams,
+      year=self.year,
+      week=self.week)
     doSetup = self.config['Web'].getboolean('doSetup', True)
     # Scrape history
-    if doSetup:
-      scrape_history(league_id=self.league_id, year=self.year, cookies=self.cookies)
+    #if doSetup:
+    #  scrape_history(league_id=self.league_id, year=self.year, cookies=self.cookies)
     # Generate html files for team and summary pages
-    generate_web(self.teams, self.year, self.week, self.league_id, 
-                 self.settings.league_name, self.settings, doSetup=doSetup)
+    generate_web(
+      df_teams=self.df_teams,
+      df_ranks=self.df_ranks,
+      df_season_summary=self.df_season_summary,
+      df_schedule=self.df_schedule,
+      year=self.year,
+      week=self.week,
+      league_id=self.league_id,
+      league_name=self.settings.league_name,
+      settings=self.settings,
+      doSetup=doSetup
+    )
 
