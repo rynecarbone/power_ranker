@@ -140,7 +140,7 @@ class League:
     )
 
   def _calc_sos(self, rank_power=2.37):
-    """Calculates the strength of schedule based on lsq rankings"""
+    """Calculates the strength of schedule based on the lsq rankings"""
     self.df_ranks = calc_sos(
       df_schedule=self.df_schedule,
       df_ranks=self.df_ranks,
