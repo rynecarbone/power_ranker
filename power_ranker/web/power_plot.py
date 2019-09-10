@@ -1,88 +1,87 @@
 #!/usr/bin/env python
 
-"""Create boxplot of power rankings vs points scored"""
+"""Create box-plot of power rankings vs points scored"""
 
 import logging
 from pathlib import Path
-import matplotlib.pyplot as plt
-import numpy as np
+import pandas as pd
+from plotnine import *
+import warnings
 
 __author__ = 'Ryne Carbone'
 
 logger = logging.getLogger(__name__)
 
 
-#_____________________________________
-def make_power_plot(teams, year, week):
-  '''Make plot of power ranking versus
-    average score'''
-  scores = []
-  owners = []
-  powers = []
-  colors = []
-  # Tier colors
-  c = [(133/255.,205/255.,242/255.),
-       (122/255.,201/255.,96/255.),
-       (224/255.,183/255.,0/255.),
-       (255/255.,106/255.,43/255.),
-       (168/255.,106/255.,156/255.)]
-  tiers = [1,2,3,4,5]   
-  my_dpi = 96  
-  minx=200
-  maxx=0
-  # Save scores, tiers, names
-  for t in teams:
-    t_scores = []
-    for s in t.stats.scores[:week]:
-      t_scores.append(s)
-    scores.append(t_scores)
-    owners.append(t.owner.split()[0].title())
-    powers.append(float(t.rank.power))
-    colors.append(c[t.rank.tier-1])
-    t_min = min(t_scores)
-    t_max = max(t_scores)
-    if t_min < minx:
-      minx = t_min
-    if t_max > maxx:
-      maxx = t_max
-  # Set up plot
-  f = plt.figure()
-  f.set_size_inches(992./my_dpi,558./my_dpi)
-  ax = f.add_subplot(111)
-  ax.set_xlim(minx-10, maxx+30)
-  plt.xlabel('Weekly Score')
-  plt.ylabel('Power Rank')
-  
-  # create list of boxplots for each player 
-  bp_dict = plt.boxplot(scores, vert=False, showfliers=False, showmeans=False, showcaps=False)
-  
-  # change color
-  for i,w in enumerate(bp_dict['whiskers']):
-    j= int(i/2) if i%2 else int((i+1)/2)
-    w.set(color=colors[j],linestyle="solid")
-  for i,b in enumerate(bp_dict['boxes']):
-    b.set(color=colors[i])
-  
-  # show each score as red dot
-  for i in range(len(teams)):
-    x = scores[i]
-    y = np.random.normal(i+1, 0.04, size=len(x))
-    ax.plot(x, y, 'r.', alpha=0.4)
- 
-  # put name to left of boxplot
-  for i,line in enumerate(bp_dict['whiskers']):
-    x, y = line.get_xydata()[1] # bottom of line (1 is top)
-    if(i%2):
-      ax.text(x+5,y, '%s'%owners[int(i/2)], horizontalalignment='left', verticalalignment='center')
-  
-  # Add a legend
-  ax.legend(loc=2,title='Tier',labels=tiers)
-  for i,leg_item in enumerate(ax.get_legend().legendHandles):
-    leg_item.set_color(c[i])
-  plt.ylim(len(teams)+1,0)
+def get_team_scores(df_schedule, team, week):
+  """Get all scores for a team
+
+  :param df_schedule: data frame with scores and team ids for each game
+  :param team: id for team
+  :param week: current week
+  :return: series of scores for team up to week
+  """
+  return (
+    df_schedule
+    .query(f'(home_id=={team} | away_id=={team}) & (matchupPeriodId <= {week} & winner != "UNDECIDED")')
+    .apply(lambda x: x.home_total_points if x.home_id == team else x.away_total_points, axis=1)
+  )
+
+
+def make_power_plot(df_ranks, df_schedule, df_teams, year, week):
+  """Create plot of weekly scores and current power rankings
+
+  :param df_ranks: data frame with current power rankings
+  :param df_schedule: data frame with scores for each game
+  :param df_teams: data frame with team names
+  :param year: current year
+  :param week: current week
+  :return: None
+  """
+  # Grab team id and power score, convert power to ranking
+  df_plot = df_ranks[['team_id', 'power', 'tier']].reset_index(drop=True)
+  # Add power rankings as categorical variable for plot
+  df_plot['power'] = pd.Categorical(
+    df_plot.get('power').rank(ascending=False).astype(int),
+    categories=[i for i in range(df_plot.team_id.size, 0, -1)],
+    ordered=True
+  )
+  # Add in first names for each team
+  df_plot['Name'] = df_plot.apply(
+    lambda x: df_teams.loc[df_teams.team_id == x.get('team_id'), 'firstName'].values[0],
+    axis=1)
+  # Add in weekly scores
+  df_plot['scores'] = df_plot.apply(
+    lambda x: get_team_scores(df_schedule=df_schedule, team=x.get('team_id'), week=week).values,
+    axis=1)
+  # Add in where to put labels
+  df_plot['label_pos'] = df_plot.scores.apply(lambda x: max(x) + 10)
+  # Explode list into a row for each week
+  df_plot = df_plot.explode('scores')
+  df_plot.scores = df_plot.scores.astype(float)
+  # noinspection PyTypeChecker
+  p = (
+    ggplot(aes(y='scores', x='factor(power)', group='factor(power)', color='factor(tier)'), data=df_plot) +
+    geom_boxplot(alpha=.8, outlier_alpha=0) +
+    geom_jitter(width=.1, alpha=.3, color='black') +
+    geom_text(aes(label='Name', x='factor(power)', y='label_pos'),
+              color='black',
+              nudge_y=3,
+              data=df_plot.groupby(['team_id']).agg(max).reset_index(drop=True)) +
+    coord_flip() +
+    labs(x='Power Ranking', y='Weekly Score') +
+    theme_bw() +
+    theme(legend_title=element_text(text='Tiers', size=10),
+          legend_position=(0.18, .72),
+          legend_background=element_rect(alpha=0),
+          panel_grid_major_y=element_blank())
+  )
+  # Specify where to save the plot
   out_dir = Path(f'output/{year}/week{week}')
   out_dir.mkdir(parents=True, exist_ok=True)
   out_name = out_dir / 'power_plot.png'
-  f.savefig(out_name, dpi=my_dpi*2, bbox_inches='tight')
+  warnings.filterwarnings('ignore')
+  p.save(out_name, width=10, height=5.6, dpi=300)
+  warnings.filterwarnings('default')
   logger.info(f'Saved power ranking plot to local file: {out_name.resolve()}')
 
