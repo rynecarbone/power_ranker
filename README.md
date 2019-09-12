@@ -3,6 +3,8 @@
 # Power Ranker
 A tool for scraping fantasy football stats from ESPN leagues, creating power rankings, collecting previous season standings, and publishing to a website.
 
+*Update 2019-09-12*: version 2.0.0 is now working with the newest v3 of ESPN api
+
 # Check out package
 
 ```python3
@@ -48,15 +50,15 @@ Week 3 Power Rankings
 ```
 Alternatively, pass the league id, year, and week as command line arguments (-l --leagueid, -y --year, -w --week) and all other default power ranking settings will be used. Pass the -p option if in a private league.
 ```bash
-power_ranker -l 123456 -y 2017 -w 3 
+power_ranker -l 123456 -y 2019 -w 1 
 Using user input:
 League ID: 123456
-Year: 2017
-Week: 3
+Year: 2019
+Week: 1
 Creating copy of: /Path/To/power_ranker/docs/default_config.cfg
 To local destination: /Path/To/Current/Dir/MY_LOCAL_CONFIG.cfg
 
-Week 3 Power Rankings 
+Week 1 Power Rankings 
 ...
 ```
 After you run the rankings, a template website will be generated in a directory titled "output/". Follow the instructions on how to [Publish Power Rankings to a Website](https://github.com/rynecarbone/power_ranker/blob/master/power_ranker/docs/PublishingWebsite.md) if you want to share the output with your league. To add your own summary to the week's power rankings, edit the file "output/2017/power.html". Find the commented out section:
