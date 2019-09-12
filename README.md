@@ -1,9 +1,9 @@
-[![version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/rynecarbone/power_ranker/blob/master/CHANGELOG.md) [![PyPI version](https://badge.fury.io/py/power-ranker.svg)](https://badge.fury.io/py/power-ranker)
+[![version](https://img.shields.io/badge/version-2.0.1-blue.svg)](https://github.com/rynecarbone/power_ranker/blob/master/CHANGELOG.md) [![PyPI version](https://badge.fury.io/py/power-ranker.svg)](https://badge.fury.io/py/power-ranker)
 
 # Power Ranker
 A tool for scraping fantasy football stats from ESPN leagues, creating power rankings, collecting previous season standings, and publishing to a website.
 
-*Update 2019-09-12*: version 2.0.0 is now working with the newest v3 of ESPN api
+*Update 2019-09-12*: version 2.0.1 is now working with the newest v3 of ESPN api
 
 # Check out package
 
