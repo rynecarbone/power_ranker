@@ -9,7 +9,7 @@ from distutils.dir_util import copy_tree
 import pkg_resources
 import numpy as np
 import pandas as pd
-from ..history import make_history_table
+from ..history import scrape_history
 
 __author__ = 'Ryne Carbone'
 
@@ -387,12 +387,25 @@ def make_welcome_page(year, week, league_id, league_name):
     output_with_replace(template, local_file, src, rep)
 
 
-def make_history_page(teams, year, league_name):
-    """Produces league history page"""
+def make_history_page(df_teams, year, league_name, endpoint, params, cookies=None):
+    """Produces league history page
+
+    :param df_teams: data frame with team names
+    :param year: current year
+    :param league_name: name of league
+    :param endpoint: history endpoint
+    :param params: api params
+    :param cookies: cookies for private leagues
+    :return: None
+    """
     logger.debug('Creating full league history page, filling in league data')
     local_file = f'output/{year}/history/index.html'
     template   = pkg_resources.resource_filename('power_ranker', 'docs/template/history.html')
-    option_menu, history_tables, overall_table, medal_table = make_history_table(year)
+    option_menu, history_tables, overall_table, medal_table = scrape_history(
+        endpoint=endpoint,
+        params=params,
+        cookies=cookies
+    )
     src = ['INSERT_LEAGUE_NAME',
            'PLAYER_DROPDOWN',
            'INSERT_OPTIONS',
@@ -400,7 +413,7 @@ def make_history_page(teams, year, league_name):
            'INSERT_OVERALL_TABLE',
            'INSERT_MEDAL_TABLE']
     rep = [league_name,
-           get_player_drop(teams, level='../'),
+           get_player_drop(teams=df_teams, level='../'),
            option_menu,
            history_tables,
            overall_table,
@@ -449,8 +462,8 @@ def copy_css_js_themes(year):
         copy_tree(template_dir, local_dir)
 
 
-def generate_web(df_teams, df_ranks, df_season_summary, df_schedule,
-                 year, week, league_id, league_name, settings, doSetup=True):
+def generate_web(df_teams, df_ranks, df_season_summary, df_schedule, year, week, league_id, league_name,
+                 settings, endpoint_history, params, cookies=None, doSetup=True):
     """
     Makes power rankings page, team summary page, about page
 
@@ -463,9 +476,23 @@ def generate_web(df_teams, df_ranks, df_season_summary, df_schedule,
     :param league_id: league id
     :param league_name: name of league
     :param settings: league settings
+    :param endpoint_history: history api endpoint
+    :param params: api parameters
+    :param cookies: cookies for private league
     :param doSetup: flag to download bootstrap css/js themes to make html pretty and create the about page
     :return: None
     """
+    if doSetup:
+        copy_css_js_themes(year=year)
+        make_about_page(df_teams=df_teams, year=year, league_name=league_name)
+        make_history_page(
+            df_teams=df_teams,
+            year=year,
+            league_name=league_name,
+            endpoint=endpoint_history,
+            params=params,
+            cookies=cookies
+        )
     make_power_page(
         df_teams=df_teams,
         df_ranks=df_ranks,
@@ -487,7 +514,4 @@ def generate_web(df_teams, df_ranks, df_season_summary, df_schedule,
         week=week,
         league_id=league_id,
         league_name=league_name)
-    if doSetup:
-        copy_css_js_themes(year=year)
-        make_about_page(df_teams=df_teams, year=year, league_name=league_name)
-        #make_history_page(teams, year, league_name)
+
