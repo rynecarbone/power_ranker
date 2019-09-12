@@ -182,7 +182,12 @@ def make_overall_medal_count(df):
     all_owners['last'] = all_owners.apply(lambda x: last_place.query(f'team_id == "{x.get("team_id")}" & firstName == "{x.get("firstName")}" & lastName=="{x.get("lastName")}"').get('year').size, axis=1)
     all_owners['PTS'] = all_owners.apply(lambda x: x['first']*3 + x['second']*2 + x['third'] - x['last'], axis=1)
     all_owners['Owner'] = all_owners.apply(lambda x: f'{x.get("firstName")} {x.get("lastName")}', axis=1)
-    all_owners = all_owners[['Owner', 'first', 'second', 'third', 'last', 'PTS']]
+    all_owners = (
+        all_owners
+        [['Owner', 'first', 'second', 'third', 'last', 'PTS']]
+        .sort_values(['PTS', 'first', 'second', 'third', 'last'], ascending=[False, False, False, False, True])
+        .reset_index(drop=True)
+    )
     trophy_tooltip = '''
     <span class='footnote' data-placement="top" data-toggle="tooltip" title='
     <table class="table table-responsive">

@@ -434,7 +434,7 @@ def output_with_replace(template, local_file, src, rep):
     """
     # create directory if doesn't already exist
     os.makedirs(os.path.dirname(local_file), exist_ok=True)
-    with open(template, 'r') as f_in, open(local_file, 'w') as f_out:
+    with open(template, 'r', encoding='utf-8') as f_in, open(local_file, 'w', encoding='utf-8') as f_out:
         for line in f_in:
             for (s, r) in zip(src, rep):
                 line = line.replace(s, r)
