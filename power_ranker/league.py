@@ -300,8 +300,8 @@ class League:
     #                n_sims = self.config['Playoffs'].getint('num_simulations', 200000))
 
   def make_website(self):
-    """Creates website based on current power rankings.
-       Must run get_power_rankings() first"""
+    """Creates website based on current power rankings. Must run get_power_rankings() first"""
+    doSetup = self.config['Web'].getboolean('doSetup', True)
     # Make Radar plots of each teams stats
     logger.info('Creating radar plots to summarize team stats')
     Y_LOW  = [float(yl.strip()) for yl in self.config['Radar'].get('Y_LOW').split(',')]
@@ -320,10 +320,6 @@ class League:
       df_teams=self.df_teams,
       year=self.year,
       week=self.week)
-    doSetup = self.config['Web'].getboolean('doSetup', True)
-    # Scrape history
-    #if doSetup:
-    #  scrape_history(league_id=self.league_id, year=self.year, cookies=self.cookies)
     # Generate html files for team and summary pages
     generate_web(
       df_teams=self.df_teams,
@@ -335,6 +331,10 @@ class League:
       league_id=self.league_id,
       league_name=self.settings.league_name,
       settings=self.settings,
+      endpoint_history=self.endpoint_history,
+      params=self.params,
+      cookies=self.cookies,
       doSetup=doSetup
     )
+
 

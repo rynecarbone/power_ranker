@@ -33,6 +33,7 @@ class Settings(object):
         self.max_faab = data.get('settings').get('acquisitionSettings').get('acquisitionBudget')
         self.min_bid = data.get('settings').get('acquisitionSettings').get('minimumBid')
         self.lineup_slot_counts = data.get('settings').get('rosterSettings').get('lineupSlotCounts')
+        self.prev_seasons = data.get('status').get('previousSeasons')
         self._fetch_roster_settings()
         #self._fetch_tie_rules(data)
 

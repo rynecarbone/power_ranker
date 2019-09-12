@@ -38,7 +38,8 @@ def build_team_table(data):
     """
     teams_cols = [
         'id', 'location', 'nickname', 'abbrev', 'logo', 'divisionId', 'transactionCounter',
-        'waiverRank', 'primaryOwner', 'draftDayProjectedRank', 'currentProjectedRank', 'playoffSeed'
+        'waiverRank', 'primaryOwner', 'draftDayProjectedRank', 'currentProjectedRank', 'playoffSeed',
+        'rankFinal', 'rankCalculatedFinal'
     ]
     df_teams = pd.DataFrame(data.get('teams'), columns=teams_cols)
     # Expand transaction columns to grab trades, acquisitions, and faab spent
