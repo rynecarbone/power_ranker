@@ -25,8 +25,8 @@ def build_owner_table(data):
     member_cols = ['firstName', 'lastName', 'id']
     df_members = pd.DataFrame(data.get('members'), columns=member_cols)
     # Make sure no white spaces
-    df_members['firstName'] = df_members.apply(lambda x: x.get('firstName').strip(), axis=1)
-    df_members['lastName'] = df_members.apply(lambda x: x.get('lastName').strip(), axis=1)
+    df_members['firstName'] = df_members.apply(lambda x: x.get('firstName').strip().title(), axis=1)
+    df_members['lastName'] = df_members.apply(lambda x: x.get('lastName').strip().title(), axis=1)
     return df_members
 
 
