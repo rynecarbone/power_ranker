@@ -85,3 +85,52 @@ def make_power_plot(df_ranks, df_schedule, df_teams, year, week):
   warnings.filterwarnings('default')
   logger.info(f'Saved power ranking plot to local file: {out_name.resolve()}')
 
+
+def save_team_weekly_ranking_plots(year, week):
+  """Create plot of historic team rankings this season
+
+  :param year: current year
+  :param week: current week
+  :return: None
+  """
+  # Read in calculated rankings for the season
+  input_dir = Path(f'output/{year}')
+  f_rankings = input_dir / 'weekly_rankings.csv'
+  df_ranks = pd.read_csv(f_rankings)
+  # Create directory to save plots
+  out_dir = Path(f'output/{year}/week{week}/ranking_plots')
+  out_dir.mkdir(parents=True, exist_ok=True)
+  # Convert from wide to long
+  df_ranks = df_ranks.melt(id_vars=['team_id', 'week'], value_vars=['overall', 'power']).reset_index(drop=True)
+  # Get team ids
+  team_ids = df_ranks.get('team_id').unique().tolist()
+  # Get max rank for plot
+  max_rank = df_ranks.get('value').max()
+  # Create power history plot for each team
+  for team_id in team_ids:
+    p = (ggplot(aes(x='factor(week)',
+                    y='value',
+                    color='variable',
+                    group='variable'),
+                data=df_ranks[df_ranks.team_id == team_id]) +
+         geom_line(aes(linetype='variable'), alpha=0.7, size=2) +
+         geom_point(size=3) +
+         scale_y_reverse(breaks=[x for x in range(max_rank, 0, -1)],
+                         minor_breaks=[],
+                         limits=[max_rank, 1]) +
+         labs(x='Week', y='Ranking', color='Ranking', linetype='Ranking') +
+         theme_bw() +
+         theme(legend_background=element_rect(alpha=0),
+               plot_background=element_rect(fill='white'),
+               panel_background=element_rect(fill='white'),
+               legend_box_margin=0,
+               strip_margin=0,
+               legend_title=element_text(size=8),
+               legend_text=element_text(size=7))
+         )
+    out_file = out_dir / f'ranking_{int(team_id)}.png'
+    warnings.filterwarnings('ignore')
+    p.save(out_file, width=8, height=2, dpi=300)
+    warnings.filterwarnings('default')
+  logger.info(f'Saved team power ranking history plots')
+

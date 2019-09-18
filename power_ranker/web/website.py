@@ -294,7 +294,7 @@ def make_teams_page(df_teams, df_sum, df_ranks, df_schedule, year, week, league_
     # create output and directory if it doesn't exist
     src = ['INSERTOWNER', 'INSERTLEAGUENAME', 'INSERTWEEK', 'IMAGELINK', 'TEAMNAME', 'TEAMABBR',
            'INSERTRECORD', 'INSERTACQUISITIONS', 'INSERTTRADES', 'INSERTWAIVER', 'OVERALLRANK',
-           'POWERRANK', 'AGGREGATEPCT', 'RADARPLOT', 'PLAYERDROPDOWN',
+           'POWERRANK', 'AGGREGATEPCT', 'RADARPLOT', 'PLAYERRANKINGPLOT', 'PLAYERDROPDOWN',
            'INSERT_TPF_PB', 'INSERT_TPA_PB', 'INSERT_HS_PB', 'INSERT_LS_PB', 'INSERT_FAAB_PB',
            'INSERTTABLEBODY']
     df_page['rep'] = df_page.apply(
@@ -313,6 +313,7 @@ def make_teams_page(df_teams, df_sum, df_ranks, df_schedule, year, week, league_
             f'{ordinal(x.get("power_rank"))} <small>{get_arrow(x.get("d_power"))}</small>',
             f'{x.get("agg_wpct"):.3f} <small>({x.get("agg_wins"):.0f}-{x.get("agg_games")-x.get("agg_wins"):.0f})</small>',
             f'radar_{x.get("team_id"):.0f}.png',
+            f'ranking_{x.get("team_id"):.0f}.png',
             get_player_drop(teams=df_teams, level='../'),
             x.get('pf_pb'),
             x.get('pa_pb'),

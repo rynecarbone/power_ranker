@@ -24,7 +24,7 @@ from .utils import (
   fetch_page)
 from .web.radar import save_team_radar_plots
 from .web.website import generate_web
-from .web.power_plot import make_power_plot
+from .web.power_plot import make_power_plot, save_team_weekly_ranking_plots
 from .playoff_odds import calc_playoffs
 from .history import scrape_history
 
@@ -313,6 +313,7 @@ class League:
       week=self.week,
       Y_LOW=Y_LOW,
       Y_HIGH=Y_HIGH)
+    save_team_weekly_ranking_plots(year=self.year, week=self.week)
     # Make welcome page power plot
     make_power_plot(
       df_ranks=self.df_ranks,
