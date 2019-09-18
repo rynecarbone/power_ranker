@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.0.2](https://github.com/rynecarbone/power_ranker/tree/2.0.2) - 2019-09-17
+- Added line chart of power rankings and overall rankings by week to the player pages
+
 ## [2.0.1](https://github.com/rynecarbone/power_ranker/tree/2.0.1) - 2019-09-12
 - Minor fix to utf-8 encoding with team names in history table
 
