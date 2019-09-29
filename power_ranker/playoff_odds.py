@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 
-"""Simulate the rest of season to calculate playoff odds"""
+"""Simulate the rest of season to calculate playoff odds
+
+TODO: calc_standings
+TODO: calc_exp_wins
+TODO: simulate_season
+
+TODO: which data to pass?
+"""
 
 import os
 import logging
@@ -8,31 +15,34 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import NullFormatter
 import numpy as np
 from scipy.stats import norm
+from .get_season_data import get_team_scores
 
 __author__ = 'Ryne Carbone'
 
 logger = logging.getLogger(__name__)
 
-#_____________________________
-def calc_playoffs(teams, year, week, settings, n_sims=1000000):
-  '''Calculates playoff odds for each team using MC simulations
+
+def calc_playoffs(df_teams, df_schedule, year, week, settings, n_sims=1000000):
+  """Calculates playoff odds for each team using MC simulations
   
-     teams: has scores and schedule for each team in league
-     settings: has settings for regular season, playoffs, divisions
-     week: current week, needed to simulate rest of season
-  '''
+  :param df_teams: has scores and schedule for each team in league
+  :param df_schedule: data frame with scores for each team
+  :param year: current year
+  :param week: current week, needed to simulate rest of season
+  :param settings: has settings for regular season, playoffs, divisions
+  :param n_sims: number of simulations to run
+  """
   logger.info('Calculating playoff odds')
-  # Retreive settings to determine playoff format
+  # Retrieve settings to determine playoff format
   reg_season = settings.reg_season_count
   spots      = settings.playoff_team_count
   divisions  = len(settings.divisions)
 
-  # Sort teams by current standings (wins, total points tie breaker)
-  sorted_teams = sorted(teams, key=lambda x: (x.stats.wins, sum(x.stats.scores[:week])), reverse= True )
-  for t in sorted_teams:
-    # fit gaus to team scores
-    t.stats.score_fit = norm.fit(t.stats.scores[:week]) 
-  
+  # Fit Gaussian to team scores
+  df_teams['score_fit'] = df_teams.apply(
+    lambda x: norm.fit(get_team_scores(df_schedule=df_schedule, team=x.get('team_id'), week=week)), axis=1
+  ).reset_index(drop=True)
+
   # Calculate the current standings
   _, __ = calc_standings(teams, divisions, spots, week, reg_season, print_current=True)
   # Calculate the expected number of wins for each team
@@ -45,21 +55,20 @@ def calc_playoffs(teams, year, week, settings, n_sims=1000000):
   # stored as list indexed by teamId
   for t in sorted_teams: 
     ew      = exp_wins[t.teamId - 1]
-    d_wins  = 100.*div[t.teamId -1]
-    wc_wins = 100.*wc[t.teamId -1]
-    print('{:>20s}\t{:.3f}    \t{:.3f}         \t{:.3f}        \t{:.3f}'.format(t.owner, ew, d_wins, wc_wins, d_wins+wc_wins ) )
+    d_wins  = 100.*div[t.teamId - 1]
+    wc_wins = 100.*wc[t.teamId - 1]
+    print(f'{t.owner:>20s}\t{ew:.3f}    \t{d_wins:.3f}         \t{wc_wins:.3f}        \t{d_wins+wc_wins:.3f}')
   return
 
 
-#____________________________________________________________________
 def simulate_season(teams, year, divisions, spots, week, reg_season, n_sims=1):
-  '''MC simulation of the rest of the season
+  """MC simulation of the rest of the season
     
      divisions: number of divisions (one spot per div. winner)
      spots: total playoff spots (non-div winners are wild cards)
      week: current week
      reg_season: length of the regular season
-  '''
+  """
   
   # Keep track of how many times each team is division winner or wc
   # index each list by unique teamId
@@ -170,27 +179,34 @@ def simulate_season(teams, year, divisions, spots, week, reg_season, n_sims=1):
   return div_tot, wc_tot
 
 
-#_____________________________________________________________________
-def calc_standings(teams, divisions, spots, week, reg_season, print_current=False):
-  '''Calculate the current playoff standings
+def calc_standings(df_teams, divisions, spots, week, reg_season, print_current=False):
+  """Calculate the current playoff standings
      
-     Division winners make it, then enough playoff teams to fill wildcard
-     Return two lists, of length number of teams
-       index for (teamId-1) = 1 if team in list:
-       ex: division_winners = [0,1,0,...,0,1,0,...,0]
-  '''
+  Division winners make it, then enough playoff teams to fill wildcard
+  :param df_teams: data frame with team data
+  :param divisions: dictionary of divisions
+  :param spots: number of playoff spots
+  :param week: current week
+  :param reg_season: length of the regular season
+  :param print_current: flag to print current standings
+  :return: two lists, of length number of teams
+    index for (teamId-1) = 1 if team in list:
+    ex: division_winners = [0,1,0,...,0,1,0,...,0]
+  """
+
+  # TODO create data frame with columns for team_id, div_winner, wild_card, eliminated
   
   division_winners = []
   wildcards        = []
-  ret_div          = [0]*len(teams)
-  ret_wc           = [0]*len(teams)
+  ret_div          = [0 for _ in range(len(df_teams))]
+  ret_wc           = [0 for _ in range(len(df_teams))]
   eliminated       = []
 
   # Find division winners first
   for d in range(divisions):
     sorted_teams = sorted(teams, key=lambda x: (x.divisionId == d, x.stats.wins, sum(x.stats.scores[:week])), reverse= True )
     division_winners.append(sorted_teams[0])
-    ret_div[sorted_teams[0].teamId-1]=1
+    ret_div[sorted_teams[0].teamId-1] = 1
   
   # Sort by record, then points for
   sorted_teams = sorted(teams, key=lambda x: (x.stats.wins, sum(x.stats.scores[:week])), reverse= True )
@@ -210,9 +226,9 @@ def calc_standings(teams, divisions, spots, week, reg_season, print_current=Fals
   
   # Print the results
   print('\nCurrent Playoff Seeding')
-  for i,t in enumerate(division_winners):
+  for i, t in enumerate(division_winners):
     print('{}) {:20s}Div Winner ({})'.format(i, t.owner, t.divisionName))
-  for j,t in enumerate(wildcards):  
+  for j, t in enumerate(wildcards):
     print('{}) {:20s} '.format(j+divisions, t.owner))
   # Print who is mathematically eliminated
   if len(eliminated) > 0 : 
@@ -222,16 +238,15 @@ def calc_standings(teams, divisions, spots, week, reg_season, print_current=Fals
   return ret_div, ret_wc
 
 
-#______________________________________________
 def calc_exp_wins(teams, week, reg_season):
-  '''Create matrix where rows are teams i, 
-     and columns are opponents j for each team i in rest of season'''
+  """Create matrix where rows are teams i,
+     and columns are opponents j for each team i in rest of season"""
   # Store prob for each team to win remaining games, using gaussian mixture
   odds_matrix = np.zeros((len(teams), reg_season-week))
   sorted_teams = sorted(teams, key=lambda x: x.teamId, reverse= False )
   ret_wins = [0]*len(teams)
   # Loop over teams for each row
-  for i,t in enumerate(sorted_teams):
+  for i, t in enumerate(sorted_teams):
     # Loop over weeks left in the season
     for j in range(reg_season-week):
       w = j+week
@@ -249,25 +264,26 @@ def calc_exp_wins(teams, week, reg_season):
   # Expected number of wins is sum of prob of winning rest of games
   exp_wins = np.sum(odds_matrix, axis=1)
   # Return list of expected number of wins, by teamId index
-  for ew,t in zip(exp_wins, sorted_teams):
+  for ew, t in zip(exp_wins, sorted_teams):
     ret_wins[t.teamId-1] = ew
   return ret_wins
 
-def progress(iteration, total, prefix='', suffix='', decimals=1, length=50, fill='='):
-  '''
-  iteration: current iteration
-  tot: total iterations
-  prefix: prefix string
-  suffix: suffix string
-  decimals: positive number of decimals in percent complete
-  length: character length of bar
-  fill: bar fill character
-  '''
-  prefix = 'Season {:7d}/{:7d}'.format(iteration, total)
+
+def progress(iteration, total, suffix='', decimals=1, length=50, fill='='):
+  """Print progress bar for simulation
+
+  :param iteration: current iteration
+  :param total: total iterations
+  :param suffix: suffix string
+  :param decimals: positive number of decimals in percent complete
+  :param length: character length of bar
+  :param fill: bar fill character
+  """
+  prefix = f'Season {iteration:7d}/{total:7d}'
   percent = ('{0:.'+str(decimals)+'f}').format(100.*(iteration/float(total)))
   filledLength = int(length*iteration // total)
-  bar = fill*filledLength + '>'+'-' *(length -filledLength-1)
-  print('\r%s |%s| %s%% %s'%(prefix, bar, percent, suffix), end='\r')
+  bar = fill*filledLength + '>' + '-' * (length - filledLength - 1)
+  print(f'\r{prefix} |{bar}| {percent}%% {suffix}', end='\r')
   if iteration == total:
-    print() # new line on complete
+    print()
 

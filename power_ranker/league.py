@@ -26,7 +26,6 @@ from .web.radar import save_team_radar_plots
 from .web.website import generate_web
 from .web.power_plot import make_power_plot, save_team_weekly_ranking_plots
 from .playoff_odds import calc_playoffs
-from .history import scrape_history
 
 __author__ = 'Ryne Carbone'
 

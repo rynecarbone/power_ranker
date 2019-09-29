@@ -11,9 +11,9 @@
 
 import logging
 import pandas as pd
-from pathlib import Path
 from .get_season_data import build_team_table, build_schedule_table, build_season_summary_table
 from .utils import fetch_page
+from .exception import InvalidLeagueException
 
 __author__ = 'Ryne Carbone'
 
@@ -35,21 +35,21 @@ def scrape_history(endpoint, params, cookies=None):
   pd.set_option('display.expand_frame_repr', False)
   # Scrape history
   try:
-    h_data = fetch_page(
-      endpoint=endpoint,
-      params=params,
-      cookies=cookies,
-      use_soup=False,
-      use_json=True
-    )
-  except Exception as e:
-    logger.exception(e)
-    raise
-  # If data frame is empty, this is the first year for the league
-  if not h_data:
+      h_data = fetch_page(
+        endpoint=endpoint,
+        params=params,
+        cookies=cookies,
+        use_soup=False,
+        use_json=True
+      )
+  except InvalidLeagueException:
+      # This is the first year for the league
       logger.warning('No league history found! History page will be empty')
       table = '<div class="text-center"><h3>Oh, my sweet summer child, there is no league history</h3></div>'
       return '', '', '', table
+  except Exception as e:
+      logger.exception(e)
+      raise
   # List which seasons are actually retrieved
   seasons_id = [data_y.get('seasonId') for data_y in h_data]
   logger.info(f'Retrieved league history for years {seasons_id}')
