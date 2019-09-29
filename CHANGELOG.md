@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.0.3](https://github.com/rynecarbone/power_ranker/tree/2.0.3) - 2019-09-29
+- Fixed bug for first year leagues where history endpoint doesn't exist 
+
 ## [2.0.2](https://github.com/rynecarbone/power_ranker/tree/2.0.2) - 2019-09-17
 - Added line chart of power rankings and overall rankings by week to the player pages
 
