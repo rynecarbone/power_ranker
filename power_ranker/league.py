@@ -292,11 +292,17 @@ class League:
     # Print Sorted team
     self.print_rankings()
     # Calc the playoff odds
-    # FIXME not updated yet
-    #do_playoffs = self.config['Playoffs'].getboolean('doPlayoffs',False)
-    #if do_playoffs:
-    #  calc_playoffs(self.teams, self.year, self.week, self.settings,
-    #                n_sims = self.config['Playoffs'].getint('num_simulations', 200000))
+    do_playoffs = self.config['Playoffs'].getboolean('doPlayoffs', False)
+    if do_playoffs:
+      calc_playoffs(
+        df_teams=self.df_teams,
+        df_sum=self.df_season_summary,
+        df_schedule=self.df_schedule,
+        year=self.year,
+        week=self.week,
+        settings=self.settings,
+        n_sims = self.config['Playoffs'].getint('num_simulations', 200000)
+      )
 
   def make_website(self):
     """Creates website based on current power rankings. Must run get_power_rankings() first"""

@@ -1,20 +1,14 @@
 #!/usr/bin/env python
 
-"""Simulate the rest of season to calculate playoff odds
+"""Simulate the rest of season to calculate playoff odds"""
 
-TODO: calc_standings
-TODO: calc_exp_wins
-TODO: simulate_season
-
-TODO: which data to pass?
-"""
-
-import os
 import logging
-import matplotlib.pyplot as plt
-from matplotlib.ticker import NullFormatter
+import warnings
+from pathlib import Path
+import pandas as pd
 import numpy as np
 from scipy.stats import norm
+from plotnine import *
 from .get_season_data import get_team_scores
 
 __author__ = 'Ryne Carbone'
@@ -22,10 +16,11 @@ __author__ = 'Ryne Carbone'
 logger = logging.getLogger(__name__)
 
 
-def calc_playoffs(df_teams, df_schedule, year, week, settings, n_sims=1000000):
+def calc_playoffs(df_teams, df_sum, df_schedule, year, week, settings, n_sims=200000):
   """Calculates playoff odds for each team using MC simulations
   
   :param df_teams: has scores and schedule for each team in league
+  :param df_sum: summary data about each team
   :param df_schedule: data frame with scores for each team
   :param year: current year
   :param week: current week, needed to simulate rest of season
@@ -36,254 +31,434 @@ def calc_playoffs(df_teams, df_schedule, year, week, settings, n_sims=1000000):
   # Retrieve settings to determine playoff format
   reg_season = settings.reg_season_count
   spots      = settings.playoff_team_count
-  divisions  = len(settings.divisions)
-
+  divisions  = pd.DataFrame(settings.divisions).rename({'id': 'divisionId', 'name': 'division'}, axis=1)
+  n_wc = spots - len(divisions)
+  # Add in wins/points for to teams frame
+  teams = pd.merge(
+    df_teams,
+    df_sum[['team_id', 'wins', 'points_for', 'points_against']], on='team_id'
+  ).reset_index(drop=True)
   # Fit Gaussian to team scores
-  df_teams['score_fit'] = df_teams.apply(
+  teams['score_fit'] = teams.apply(
     lambda x: norm.fit(get_team_scores(df_schedule=df_schedule, team=x.get('team_id'), week=week)), axis=1
   ).reset_index(drop=True)
-
+  # Run simulations for the remaining games to calculate playoff odds
+  df_sim_results = run_simulation(
+    teams=teams,
+    schedule=df_schedule,
+    week=week,
+    reg_season=reg_season,
+    n_sims=n_sims,
+    n_wc=n_wc,
+    year=year
+  )
   # Calculate the current standings
-  _, __ = calc_standings(teams, divisions, spots, week, reg_season, print_current=True)
+  calc_standings(teams=teams, divisions=divisions, spots=spots, week=week, reg_season=reg_season)
   # Calculate the expected number of wins for each team
-  exp_wins = calc_exp_wins(teams, week, reg_season)
-  # Simulate the rest of the season to find pct of times each team makes playoffs
-  div, wc = simulate_season(teams, year, divisions, spots, week, reg_season, n_sims=n_sims)
-
-  print('\nRest of Season Projections\n{:>20s}\tExp. Wins\tDiv. Winner (%)\tWild Card (%)\tMake Playoffs (%)'.format('Team'))
-  # Expected wins, division winner, wild card spots 
-  # stored as list indexed by teamId
-  for t in sorted_teams: 
-    ew      = exp_wins[t.teamId - 1]
-    d_wins  = 100.*div[t.teamId - 1]
-    wc_wins = 100.*wc[t.teamId - 1]
-    print(f'{t.owner:>20s}\t{ew:.3f}    \t{d_wins:.3f}         \t{wc_wins:.3f}        \t{d_wins+wc_wins:.3f}')
+  logger.info('Calculating expected number of wins for remaining games')
+  exp_wins = calc_exp_wins(teams, df_schedule, week, reg_season)
+  # Print out the results of the simulations
+  df_sim_results['playoff_pct'] = df_sim_results['wc_pct'] + df_sim_results['div_pct']
+  df_sim_results = (
+    pd.merge(df_teams[['team_id', 'firstName', 'lastName']],
+             df_sim_results, on='team_id')
+    .merge(exp_wins[['team_id', 'total_wins']], on='team_id')
+    .sort_values(by=['playoff_pct', 'div_pct', 'wc_pct'], ascending=[False, False, False])
+    .reset_index(drop=True)
+    .rename({'total_wins': 'Exp. Wins',
+             'wc_pct': 'Wildcard (%)',
+             'div_pct': 'Div. Winner (%)',
+             'playoff_pct': 'Make Playoffs (%)'}, axis=1)
+  )
+  logger.info(f'Playoff simulation results (n_sim={n_sims})')
+  pd.set_option('precision', 3)
+  pd.set_option('max_columns', 20)
+  pd.set_option('display.expand_frame_repr', False)
+  print(df_sim_results[['firstName', 'lastName', 'Exp. Wins', 'Wildcard (%)',
+                        'Div. Winner (%)', 'Make Playoffs (%)']].to_string(index=False))
   return
 
 
-def simulate_season(teams, year, divisions, spots, week, reg_season, n_sims=1):
-  """MC simulation of the rest of the season
-    
-     divisions: number of divisions (one spot per div. winner)
-     spots: total playoff spots (non-div winners are wild cards)
-     week: current week
-     reg_season: length of the regular season
+def run_simulation(teams, schedule, week, reg_season, n_sims, n_wc, year):
+  """Run simulations, aggregate and plot results
+
+  :param teams: data frame with team data
+  :param schedule: data frame with schedule data
+  :param week: current week
+  :param reg_season: length of regular season
+  :param n_sims: number of simulations to run
+  :param n_wc: number of wild card spots
+  :param year: current year
+  :return: results of simulation
   """
-  
-  # Keep track of how many times each team is division winner or wc
-  # index each list by unique teamId
-  div_tot = [0]*len(teams)
-  wc_tot  = [0]*len(teams)
-  # Keep track of percent of playoff appearances as
-  # function of number of MC simulations 
-  div_tot_plot = np.zeros((len(teams),int(n_sims/1000)))
-  wc_tot_plot = np.zeros((len(teams),int(n_sims/1000)))
-  
-  print('\nSimulating Rest of Season...')
-  # Loop over number of simulated seasons
-  for season in range(n_sims):
-    # Keep track of progress every 1k simulations
-    if (season+1) % 1000 == 0:
-      progress(season+1, n_sims, suffix='Complete')
-      # Add data point to plot later
-      for i, (curr_d, curr_w) in enumerate(zip(div_tot, wc_tot)):
-        div_tot_plot[i,int(season/1000)] = curr_d /float(season)
-        wc_tot_plot[i,int(season/1000)] = curr_w /float(season)
-    # keep track of wins during this simulation,
-    # need to erase number of wins added after each season sim   
-    temp_wins = [0]*len(teams) 
-    
-    # Loop over remaining games in simulated season
-    for i in range(reg_season-week):
-      w = i + week # simulated week number
-      simulated = [] # keep track of which games have already been simulated
-      
-      # Loop over teams in this week
-      for t in teams:
-        # Only simulate game and opponent if havent already done so
-        if t.teamId not in simulated:
-          # Generate random score from reg season score profile
-          t.stats.scores[w] = np.random.normal(t.stats.score_fit[0], t.stats.score_fit[1],1)[0]
-          simulated.append(t.teamId) # already simulated this game
-          # simulate opponent
-          for op in teams:
-            if op.teamId == t.stats.schedule[w].teamId:
-              # Generate random score from reg season score profile
-              op.stats.scores[w] = np.random.normal(op.stats.score_fit[0], op.stats.score_fit[1],1)[0]
-              simulated.append(op.teamId) # already simulated this game
-              
-              # Figure out who won this week
-              if t.stats.scores[w] > op.stats.scores[w]:
-                t.stats.wins += 1
-                temp_wins[t.teamId-1] += 1
-              else:
-                op.stats.wins += 1
-                temp_wins[op.teamId-1] += 1
-    
-    # Finished simulating the season, get division winners 
-    # and wildcard spots for this simulation
-    div, wc = calc_standings(teams, divisions, spots, reg_season, reg_season, print_current=False)
-    # Update list of total season each team wins division/wildcard
-    div_tot[:] = [sum(x) for x in zip(div_tot, div)]
-    wc_tot[:]  = [sum(x) for x in zip(wc_tot, wc)]
-    # Reset wins for rest of simulations for unplayed games
-    for t in  sorted(teams, key=lambda x: (x.stats.wins, sum(x.stats.scores[:])), reverse= True ):
-      t.stats.wins -= temp_wins[t.teamId-1]
-  # Normalize by number of simulations
-  div_tot[:] = [ x/float(n_sims) for x in div_tot]
-  wc_tot[:]  = [ x/float(n_sims) for x in wc_tot]
-  # Order teams by numer of times they win division / wild card for plotting
-  d_order = sorted(range(len(div_tot)), key=lambda k: div_tot[k], reverse=True)
-  w_order = sorted(range(len(wc_tot)), key=lambda k: wc_tot[k], reverse=True)
-  
-  # Plot the pct as funciton of simulation
-  plt.figure(1)
-  ax1 = plt.subplot(211, xlabel='Simulation / 1000', ylabel='Win Division %', yscale='logit')
-  xx = [x for x in range(int(n_sims/1000.))]
-  # If someone is 100% in all simulations
-  if np.amax(div_tot_plot) == 1.0:
-    ax1.set_yscale("log", nonposy='clip')
-    ax1.set_ylim([0.0,1.01]) 
-  # Make division subplot
-  for i in d_order:
-    owner = ''
-    for t in teams:
-      if t.teamId == i+1:
-        owner = t.owner.split(' ')[0]
-    plt.plot(xx, div_tot_plot[i,:], label=owner)
-  box1 = ax1.get_position()
-  ax1.set_position([box1.x0, box1.y0, box1.width*0.87, box1.height])
-  #plt.gca().yaxis.set_minor_formatter(NullFormatter())
-  ax1.yaxis.set_minor_formatter(NullFormatter())
-  ax1.legend(bbox_to_anchor=(1.01,1), loc=2, ncol=1,borderaxespad=0., prop={'size':10})
-  # Make WC subplot
-  ax2 = plt.subplot(212, xlabel = 'Simulation / 1000', ylabel='Wild Card %', yscale='logit')
-  # If someone is 100% in all simulations
-  if np.amax(wc_tot_plot) == 1.0:
-    ax2.set_yscale("log", nonposy='clip')
-    ax2.set_ylim([0.0,1.01]) 
-  for i in w_order:
-    owner = ''
-    for t in teams:
-      if t.teamId == i+1:
-        owner = t.owner.split(' ')[0]
-    plt.plot(xx, wc_tot_plot[i,:], label=owner)
-  box2 = ax2.get_position()
-  ax2.set_position([box2.x0, box2.y0, box2.width*0.87, box2.height])
-  ax2.legend(bbox_to_anchor=(1.01,1), loc=2, ncol=1,borderaxespad=0.,prop={'size':10})
-  ax2.yaxis.set_minor_formatter(NullFormatter())
-  out_dir = 'output/%s/week%s/playoff_odds.png'%(year,week)
-  os.makedirs(os.path.dirname(out_dir), exist_ok=True)
-  plt.savefig(out_dir)
-
-  return div_tot, wc_tot
+  logger.info(f'Generating simulated scores for {n_sims} seasons')
+  df_sim = generate_simulations(
+    teams=teams,
+    schedule=schedule,
+    week=week,
+    reg_season=reg_season,
+    n_sims=n_sims)
+  logger.info('Summarising statistics in each simulated season')
+  df_sum = summarise_simulations(
+    df_sim=df_sim,
+    teams=teams)
+  logger.info('Calculating division winners and wildcards in each simulated season')
+  df_div_winners = get_div_winners(
+    df_sim=df_sum)
+  df_wc = get_wildcards(
+    df_sim=df_sum,
+    df_div_winners=df_div_winners,
+    n_wc=n_wc)
+  logger.info('Summarising simulated playoff percentages for plotting')
+  df_plot = calc_playoff_pct_by_iter(
+    teams=teams,
+    df_div_winners=df_div_winners,
+    df_wc=df_wc,
+    max_iters=n_sims,
+    step_size=int(n_sims/100))
+  df_plot = unnest(
+    df=df_plot,
+    explode=['x_vals', 'wc_pct', 'div_pct'])
+  logger.info('Plotting playoff simulation results')
+  plot_simulation_results(
+    df_plot=df_plot,
+    week=week,
+    year=year)
+  return df_plot.query('x_vals==x_vals.max()')[['team_id', 'wc_pct', 'div_pct']].reset_index(drop=True)
 
 
-def calc_standings(df_teams, divisions, spots, week, reg_season, print_current=False):
+def generate_simulations(teams, schedule, week, reg_season, n_sims):
+  """Generate simulated scores for rest of season
+
+  :param teams: data frame with team data
+  :param schedule: data frame with schedule data
+  :param week: current week
+  :param reg_season: length of regular season
+  :param n_sims: number of simulations to run
+  :return: data frame with simulated scores
+  """
+  # Get remaining schedule
+  df_remaining = (
+    schedule[['home_id', 'away_id', 'matchupPeriodId']]
+    .query(f'matchupPeriodId > {week} & matchupPeriodId <= {reg_season}')
+    .reset_index(drop=True))
+  # Add in score profiles
+  df_remaining['home_score_fit'] = df_remaining.apply(
+    lambda x: teams[teams.get('team_id') == x.get('home_id')].get('score_fit').values[0], axis=1
+  )
+  df_remaining['away_score_fit'] = df_remaining.apply(
+    lambda x: teams[teams.get('team_id') == x.get('away_id')].get('score_fit').values[0], axis=1
+  )
+  # Add in simulated scores
+  df_remaining['home_scores'] = df_remaining.apply(
+    lambda x: norm.rvs(x.home_score_fit[0], x.home_score_fit[1], n_sims).tolist(), axis=1
+  )
+  df_remaining['away_scores'] = df_remaining.apply(
+    lambda x: norm.rvs(x.away_score_fit[0], x.away_score_fit[1], n_sims).tolist(), axis=1
+  )
+  return df_remaining
+
+
+def unnest(df, explode):
+  """Unnest columns that have lists into a row for each element
+
+  :param df: input data frame with nested columns
+  :param explode: list of columns to explode
+  :return: data frame with long format
+  """
+  idx = df.index.repeat(df[explode[0]].str.len())
+  # Get index in each list we want to explode
+  idx2 = np.array([list(range(len(x))) for x in df[explode[0]]]).flatten()
+  # Explode each column in 'explode', and concat into columns
+  df1 = pd.concat([pd.DataFrame({x: np.concatenate(df[x].values)}) for x in explode], axis=1)
+  # Add in column for labeling index in exploded lists
+  df1 = pd.concat([df1, pd.DataFrame({'iteration': idx2})], axis=1)
+  df1.index = idx
+  return df1.join(df.drop(explode, 1), how='left')
+
+
+def summarise_simulations(df_sim, teams):
+  """Convert the wide format simulations into long format
+
+  summarise each iteration
+  :param df_sim: input data frame with simulated scores
+  :param teams: data frame with team data
+  :return: long format summarised by iteration
+  """
+  df_sim_long = unnest(df=df_sim, explode=['home_scores', 'away_scores']).reset_index(drop=True)
+  # Add in indicators for win/loss
+  df_sim_long['home_wins'] = df_sim_long['home_scores'] > df_sim_long['away_scores']
+  df_sim_long['away_wins'] = df_sim_long['away_scores'] > df_sim_long['home_scores']
+  # Aggregate by home/away and iteration
+  df_home_sum = (
+    df_sim_long
+    .groupby(['home_id', 'iteration'], as_index=False)
+    .agg({'home_scores': 'sum', 'home_wins': 'sum'})
+    .astype(float)
+    .rename({'home_id': 'team_id'}, axis=1)
+  )
+  df_away_sum = (
+    df_sim_long
+    .groupby(['away_id', 'iteration'], as_index=False)
+    .agg({'away_scores': 'sum', 'away_wins': 'sum'})
+    .astype(float)
+    .rename({'away_id': 'team_id'}, axis=1)
+  )
+  # Combine home away summaries
+  df_sim_sum = pd.merge(df_home_sum,
+                        df_away_sum,
+                        on=['team_id', 'iteration'], how='outer').fillna(0).reset_index(drop=True)
+  # Add in season stats
+  df_sim_sum = pd.merge(df_sim_sum,
+                        teams[['team_id', 'divisionId', 'wins', 'points_for']],
+                        on=['team_id']).reset_index(drop=True)
+  # Add in total wins/points
+  df_sim_sum['tot_wins'] = df_sim_sum['home_wins'] + df_sim_sum['away_wins'] + df_sim_sum['wins']
+  df_sim_sum['tot_pts'] = df_sim_sum['home_scores'] + df_sim_sum['away_scores'] + df_sim_sum['points_for']
+  # Drop unnecessary columns
+  df_sim_sum = df_sim_sum.drop(['home_scores', 'home_wins', 'away_scores', 'away_wins', 'wins', 'points_for'], 1)
+  return df_sim_sum
+
+
+def get_div_winners(df_sim):
+  """Calculate division winners with summarised simulation data
+
+  :param df_sim: data frame with simulated scores summarised by iteration
+  :return: data frame with division winners per iteration
+  """
+  return (
+    df_sim
+    .sort_values(by=['tot_wins', 'tot_pts'], ascending=[False, False])
+    .groupby(['iteration', 'divisionId'])
+    .head(1)
+    .sort_values(by=['divisionId', 'iteration'])
+    .reset_index(drop=True)
+  )
+
+
+def get_wildcards(df_sim, df_div_winners, n_wc):
+  """Calculate wildcards per simulation
+
+  :param df_sim: simulated data
+  :param df_div_winners: data frame with div winners in each iteration
+  :param n_wc: number of wildcard positions open
+  :return: data frame with wildcard teams per iteration
+  """
+  return (
+    df_sim
+    .merge(df_div_winners[['team_id', 'iteration']], on=['team_id', 'iteration'], how='left', indicator=True)
+    .query('_merge=="left_only"')
+    .drop('_merge', 1)
+    .sort_values(by=['tot_wins', 'tot_pts'], ascending=[False, False])
+    .groupby('iteration')
+    .head(n_wc)
+    .sort_values(by='iteration')
+    .reset_index(drop=True)
+  )
+
+
+def calc_playoff_pct_by_iter(teams, df_div_winners, df_wc, max_iters, step_size):
+  """Calculate percentage of times team makes playoffs as function of simulation iteration
+
+  :param teams: data frame with team data
+  :param df_div_winners: division winners by iteration
+  :param df_wc: wildcards by iteration
+  :param max_iters: number of simulations run
+  :param step_size: how often to calculate rolling percentage
+  :return: summarised data frame for plotting
+  """
+  df_plot = teams[['team_id', 'firstName', 'divisionId']].reset_index(drop=True)
+  # Get list of iterations where each team is wildcard
+  df_plot['it_wc'] = df_plot.apply(lambda x: df_wc.query(f'team_id == {x.team_id}').iteration.tolist(), axis=1)
+  # Get list of iterations where each team is division winner
+  df_plot['it_div'] = df_plot.apply(lambda x: df_div_winners.query(f'team_id == {x.team_id}').iteration.tolist(), axis=1)
+  # Calculate rolling pct at specified step size
+  df_plot['wc_pct'] = df_plot['it_wc'].apply(
+    lambda x: [100*sum([xi < iter_checkpoint for xi in x])/float(iter_checkpoint)
+               for iter_checkpoint in list(range(step_size, max_iters+1, step_size))]
+  )
+  df_plot['div_pct'] = df_plot['it_div'].apply(
+    lambda x: [100*sum([xi < iter_checkpoint for xi in x])/float(iter_checkpoint)
+               for iter_checkpoint in list(range(step_size, max_iters+1, step_size))]
+  )
+  # Drop the list of wc/div iterations by team
+  df_plot = df_plot.drop(['it_wc', 'it_div'], 1)
+  # Add in iteration counter for plotting
+  df_plot['x_vals'] = df_plot['team_id'].apply(lambda x: list(range(step_size, max_iters+1, step_size)))
+  return df_plot
+
+
+def plot_simulation_results(df_plot, week, year):
+  """Make wildcard and division winner plots by simulation number
+
+  :param df_plot: data frame with summarised simulation information
+  :param week: current week
+  :param year: current season
+  :return: None
+  """
+  # Calculate label positions
+  df_plot_label_pos = (
+    df_plot
+    .query('x_vals==x_vals.max()')[['team_id', 'firstName', 'wc_pct', 'div_pct', 'x_vals']]
+    .reset_index(drop=True))
+  x_scale_factor = df_plot_label_pos.x_vals.max() / df_plot_label_pos.team_id.size
+  df_plot_label_pos['wc_pct_pos'] = df_plot_label_pos.wc_pct.rank(method='first') * x_scale_factor
+  df_plot_label_pos['div_pct_pos'] = df_plot_label_pos.div_pct.rank(method='first') * x_scale_factor
+  # Create wildcard plot
+  df_plot_label_pos
+  p_wc = (
+    ggplot(aes(x='x_vals',
+               y='wc_pct',
+               color='factor(team_id)',
+               group='team_id'),
+           data=df_plot) +
+    geom_line() +
+    geom_label(aes(label='firstName',
+                   x='wc_pct_pos',
+                   y='wc_pct',
+                   color='factor(team_id)'),
+               data=df_plot_label_pos,
+               size=10) +
+    labs(x='Simulation', y='Simulations Team is Wildcard (%)') +
+    theme_bw() +
+    guides(color=False) +
+    ylim(0, 100)
+  )
+  # Create division winner plot
+  p_div = (
+    ggplot(aes(x='x_vals',
+               y='div_pct',
+               color='factor(team_id)',
+               group='team_id'),
+           data=df_plot) +
+    geom_line() +
+    geom_label(aes(label='firstName',
+                   x='div_pct_pos',
+                   y='div_pct',
+                   color='factor(team_id)'),
+               data=df_plot_label_pos,
+               size=10) +
+    labs(x='Simulation', y='Simulations Team is Div. Winner (%)') +
+    theme_bw() +
+    guides(color=False) +
+    ylim(0, 100)
+  )
+  # Create directory to save plots
+  out_dir = Path(f'output/{year}/week{week}')
+  out_dir.mkdir(parents=True, exist_ok=True)
+  # Create file names
+  out_file_wc = out_dir / 'playoffs_wildcard_pct_by_simulation.png'
+  out_file_div = out_dir / 'playoffs_division_pct_by_simulation.png'
+  # Save plots
+  warnings.filterwarnings('ignore')
+  p_wc.save(out_file_wc, width=10, height=6, dpi=300)
+  p_div.save(out_file_div, width=10, height=6, dpi=300)
+  warnings.filterwarnings('default')
+  logger.info(f'Playoff simulation plots saved to: \n\t>{out_file_wc}\n\t>{out_file_div}')
+
+
+def calc_standings(teams, divisions, spots, week, reg_season):
   """Calculate the current playoff standings
-     
+
   Division winners make it, then enough playoff teams to fill wildcard
-  :param df_teams: data frame with team data
+  :param teams: data frame with team data
   :param divisions: dictionary of divisions
   :param spots: number of playoff spots
   :param week: current week
   :param reg_season: length of the regular season
-  :param print_current: flag to print current standings
-  :return: two lists, of length number of teams
-    index for (teamId-1) = 1 if team in list:
-    ex: division_winners = [0,1,0,...,0,1,0,...,0]
+  :return: None
   """
-
-  # TODO create data frame with columns for team_id, div_winner, wild_card, eliminated
-  
-  division_winners = []
-  wildcards        = []
-  ret_div          = [0 for _ in range(len(df_teams))]
-  ret_wc           = [0 for _ in range(len(df_teams))]
-  eliminated       = []
-
+  df_standings = teams[['team_id', 'location', 'nickname', 'abbrev', 'firstName', 'lastName',
+                        'divisionId', 'wins', 'points_for', 'points_against']].reset_index(drop=True)
+  df_standings = pd.merge(df_standings, divisions[['divisionId', 'division']], on='divisionId').reset_index(drop=True)
   # Find division winners first
-  for d in range(divisions):
-    sorted_teams = sorted(teams, key=lambda x: (x.divisionId == d, x.stats.wins, sum(x.stats.scores[:week])), reverse= True )
-    division_winners.append(sorted_teams[0])
-    ret_div[sorted_teams[0].teamId-1] = 1
-  
-  # Sort by record, then points for
-  sorted_teams = sorted(teams, key=lambda x: (x.stats.wins, sum(x.stats.scores[:week])), reverse= True )
-  for t in sorted_teams:
-    if t not in division_winners and spots - len(wildcards) - divisions > 0:
-      wildcards.append(t)
-      ret_wc[t.teamId-1] = 1
-  # No need to compute eliminated teams and print results
-  if not print_current:
-    return ret_div, ret_wc
-
-  # Find eliminated teams
-  last_wc = wildcards[-1]
-  for t in sorted_teams:
-    if t not in division_winners and t not in wildcards and last_wc.stats.wins - t.stats.wins > (reg_season-week):
-      eliminated.append(t)
-  
-  # Print the results
-  print('\nCurrent Playoff Seeding')
-  for i, t in enumerate(division_winners):
-    print('{}) {:20s}Div Winner ({})'.format(i, t.owner, t.divisionName))
-  for j, t in enumerate(wildcards):
-    print('{}) {:20s} '.format(j+divisions, t.owner))
-  # Print who is mathematically eliminated
-  if len(eliminated) > 0 : 
-    print('\nEliminated:')
-    for e in eliminated:
-      print('{}'.format(e.owner))
-  return ret_div, ret_wc
-
-
-def calc_exp_wins(teams, week, reg_season):
-  """Create matrix where rows are teams i,
-     and columns are opponents j for each team i in rest of season"""
-  # Store prob for each team to win remaining games, using gaussian mixture
-  odds_matrix = np.zeros((len(teams), reg_season-week))
-  sorted_teams = sorted(teams, key=lambda x: x.teamId, reverse= False )
-  ret_wins = [0]*len(teams)
-  # Loop over teams for each row
-  for i, t in enumerate(sorted_teams):
-    # Loop over weeks left in the season
-    for j in range(reg_season-week):
-      w = j+week
-      op_id  = t.stats.schedule[w].teamId
-      # Find opponent for team i in week j
-      for op in sorted_teams:
-        if op.teamId == op_id:
-          # Extract team and opponent point dist parameters
-          t_mu, t_std = t.stats.score_fit
-          op_mu, op_std = op.stats.score_fit
-          # Define new gaussian variable as diff of these two point dist
-          Z = norm( t_mu-op_mu, np.sqrt(t_std**2 + op_std**2) )
-          # Prob( t > op ) <=> Prob (Z > 0) == 1- Z.cdf(0)
-          odds_matrix[i,j] = 1.-Z.cdf(0)
-  # Expected number of wins is sum of prob of winning rest of games
-  exp_wins = np.sum(odds_matrix, axis=1)
-  # Return list of expected number of wins, by teamId index
-  for ew, t in zip(exp_wins, sorted_teams):
-    ret_wins[t.teamId-1] = ew
-  return ret_wins
+  df_div_winners = (
+    df_standings
+    .sort_values(by=['wins', 'points_for'], ascending=[False, False])
+    .groupby('divisionId')
+    .head(1)
+    .reset_index(drop=True)
+  )
+  # Get wild cards
+  df_wc = (
+    df_standings
+    .query(f'team_id not in {df_div_winners.team_id.tolist()}')
+    .sort_values(by=['wins', 'points_for'], ascending=[False, False])
+    .head(spots - len(divisions))
+    .reset_index(drop=True)
+  )
+  df_standings['div_winner'] = df_standings.apply(
+    lambda x: 1 if x.team_id in df_div_winners.team_id.tolist() else 0, axis=1
+  )
+  df_standings['wildcard'] = df_standings.apply(
+    lambda x: 1 if x.team_id in df_wc.team_id.tolist() else 0, axis=1
+  )
+  # Get eliminated
+  df_eliminated = (
+    df_standings
+    .query(f'team_id not in {df_div_winners.team_id.tolist()+df_wc.team_id.tolist()}')
+    .query(f'{df_wc.tail(1).wins.values[0]} - wins  > {reg_season - week}')
+    .reset_index(drop=True)
+  )
+  # Select columns for printing
+  df_div_winners['spot'] = 'Division Winner'
+  df_wc['spot'] = 'Wild Card'
+  df_eliminated['spot'] = 'Eliminated'
+  playoff_cols = ['firstName', 'lastName', 'wins', 'points_for', 'spot', 'division']
+  df_playoff_spots = pd.concat([df_div_winners[playoff_cols], df_wc[playoff_cols]]).reset_index(drop=True)
+  # Print the Current standings
+  logger.info(f'Current Playoff Standings:\n{df_playoff_spots.to_string(index=False)}')
+  logger.info(f'Teams Eliminated from Playoffs:\n{df_eliminated[playoff_cols].to_string(index=False)}')
 
 
-def progress(iteration, total, suffix='', decimals=1, length=50, fill='='):
-  """Print progress bar for simulation
+def calc_exp_wins(teams, schedule, week, reg_season):
+  """Calculate expected wins for rest of season for each team
 
-  :param iteration: current iteration
-  :param total: total iterations
-  :param suffix: suffix string
-  :param decimals: positive number of decimals in percent complete
-  :param length: character length of bar
-  :param fill: bar fill character
+  Use fitted normal distribution for each team, combine distributions
+  and calculate cdf(0) for probability to win
+  :param teams: data frame with teams and score profile
+  :param schedule: data frame with schedule data
+  :param week: current week
+  :param reg_season: weeks in regular season
   """
-  prefix = f'Season {iteration:7d}/{total:7d}'
-  percent = ('{0:.'+str(decimals)+'f}').format(100.*(iteration/float(total)))
-  filledLength = int(length*iteration // total)
-  bar = fill*filledLength + '>' + '-' * (length - filledLength - 1)
-  print(f'\r{prefix} |{bar}| {percent}%% {suffix}', end='\r')
-  if iteration == total:
-    print()
+  # Get remaining schedule
+  df_remaining = schedule.query(f'matchupPeriodId > {week} & matchupPeriodId <= {reg_season}').reset_index(drop=True)
+  # Add in score profiles
+  df_remaining['home_score_fit'] = df_remaining.apply(
+    lambda x: teams[teams.get('team_id') == x.get('home_id')].get('score_fit').values[0], axis=1
+  )
+  df_remaining['away_score_fit'] = df_remaining.apply(
+    lambda x: teams[teams.get('team_id') == x.get('away_id')].get('score_fit').values[0], axis=1
+  )
+  # Calc prob home wins: subtract normal distributions and find cdf at 0
+  df_remaining['p_home_wins'] = df_remaining.apply(
+    lambda x: norm(x.away_score_fit[0] - x.home_score_fit[0],
+                   np.sqrt(x.home_score_fit[1] ** 2 + x.away_score_fit[1])).cdf(0), axis=1
+  )
+  # Get expected home/away wins
+  df_expected_home_wins = (
+    df_remaining
+    .groupby('home_id')
+    .agg(home_wins=('p_home_wins', lambda x: sum(x)))
+    .reset_index()
+    .rename({'home_id': 'team_id'}, axis=1)
+  )
+  df_expected_away_wins = (
+    df_remaining
+    .groupby('away_id')
+    .agg(away_wins=('p_home_wins', lambda x: sum(1-x)))
+    .reset_index()
+    .rename({'away_id': 'team_id'}, axis=1)
+  )
+  # Combine home/away expected results and calculate total wins
+  df_expected = (
+    pd.merge(df_expected_home_wins, df_expected_away_wins, on='team_id', how='outer')
+    .reset_index(drop=True)
+    .fillna(0)
+  )
+  df_expected['total_wins'] = df_expected.apply(lambda x: x.home_wins+x.away_wins, axis=1)
+  return df_expected
+
+
+
 
