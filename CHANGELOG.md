@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [2.1.0](https://github.com/rynecarbone/power_ranker/tree/2.1.0) - 2019-11-05
+- Playoff Monte Carlo simulations are reimplemented.
+
 ## [2.0.3](https://github.com/rynecarbone/power_ranker/tree/2.0.3) - 2019-09-29
 - Fixed bug for first year leagues where history endpoint doesn't exist 
 
@@ -33,7 +36,7 @@ All notable changes to this project will be documented in this file.
 
 ## [1.0.0](https://github.com/rynecarbone/power_ranker/tree/1.0.0) - 2017-10-05
 ### Changed
-- Multiple instances of application for separate league settings 
+ Multiple instances of application for separate league settings 
 are now handled in one application with the help of a configuration file
 - Ranking normalizations are standardized
 - Website generation will now copy bootrap css/js files to make raw html pretty

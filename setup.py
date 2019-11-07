@@ -2,7 +2,7 @@ from setuptools import setup
 from setuptools import find_packages
 
 setup(name='power_ranker',
-      version='2.0.3',
+      version='2.1.0',
       description='Fantasy football power rankings for public ESPN leagues',
       long_description=open('README.md').read(),
       long_description_content_type="text/markdown",
@@ -11,7 +11,7 @@ setup(name='power_ranker',
       author_email='ryne.carbone@gmail.com',
       license='MIT',
       classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Operating System :: OS Independent',
